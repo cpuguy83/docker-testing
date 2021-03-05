@@ -4,7 +4,7 @@ SHELL := /usr/bin/env bash -exo pipefail -c
 OUTPUT ?= bin
 export OUTPUT
 
-PROJECTS := engine runc
+PROJECTS := engine runc containerd cli
 PROGRESS := auto
 ifeq ($(V), 1)
 	PROGRESS := plain
@@ -12,11 +12,11 @@ endif
 
 .PHONY: $(PROJECTS)
 $(PROJECTS): # make (project name) VERSION=<project version> DISTRO=<distro>
-	@if [ -z $(VERSION) ]; then \
+	@if [ -z "$(VERSION)" ]; then \
 		dirs=($(shell ls $(@))); \
 		VERSION="$${dirs[-1]}"; \
 	fi; \
-	if [ -z $(DISTRO) ]; then \
+	if [ -z "$(DISTRO)" ]; then \
 		ls=($$(ls $(@)/$${VERSION}/Dockerfile.*)); \
 		f="$${ls[-1]}"; \
 		fileName="$${f##*/}"; \
