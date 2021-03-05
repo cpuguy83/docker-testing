@@ -1,0 +1,24 @@
+ARG GO_VERSION=1.13.15
+ARG GO_IMAGE=golang:${GO_VERSION}
+
+FROM --platform=${BUILDPLATFORM} ${GO_IMAGE} AS go
+
+FROM --platform=${BUILDPLATFORM} ubuntu:20.04 AS build
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y  \
+	dh-apparmor \
+	dh-exec \
+	git \
+	libbtrfs-dev \
+	libdevmapper-dev \
+	libltdl-dev \
+	libsystemd-dev \
+	pkg-config
+WORKDIR /go/src/github.com/containerd/containerd
+ARG REPO=https://github.com/containerd/containerd.git
+RUN git clone --branch=release/1.4 --depth=1 ${REPO} .
+RUN	--mount=from=go,src=/usr/local/go,target=/usr/local/go \
+	PATH="/usr/local/go/bin:${PATH}" GOPATH=/go make binaries
+
+FROM scratch as binary
+COPY --from=build /go/src/github.com/containerd/containerd/bin/* /
