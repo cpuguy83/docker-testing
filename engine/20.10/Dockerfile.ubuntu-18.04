@@ -22,5 +22,5 @@ RUN --mount=src=build.sh,target=/tmp/build.sh \
 	--mount=from=go,src=/usr/local/go,target=/usr/local/go \
 	PATH="/usr/local/go/bin:${PATH}" GOPATH=/go OUTPUT=/tmp/build /tmp/build.sh
 
-FROM scratch as bianry
+FROM scratch as binary
 COPY --from=build /tmp/build/* /

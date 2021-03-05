@@ -1,26 +1,34 @@
+SHELL := /usr/bin/env bash -exo pipefail -c
+.DEFAULT_GOAL := all
+
 OUTPUT ?= bin
 export OUTPUT
 
 PROJECTS := engine runc
+PROGRESS := auto
+ifeq ($(V), 1)
+	PROGRESS := plain
+endif
 
-DOCKERFILES := $(foreach project,$(PROJECTS),$(wildcard $(project)/*/Dockerfile.*))
+.PHONY: $(PROJECTS)
+$(PROJECTS): # make (project name) VERSION=<project version> DISTRO=<distro>
+	@if [ -z $(VERSION) ]; then \
+		dirs=($(shell ls $(@))); \
+		VERSION="$${dirs[-1]}"; \
+	fi; \
+	if [ -z $(DISTRO) ]; then \
+		ls=($$(ls $(@)/$${VERSION}/Dockerfile.*)); \
+		f="$${ls[-1]}"; \
+		fileName="$${f##*/}"; \
+		distro=$${fileName#*.}; \
+		out="$(OUTPUT)/$(@)/$${VERSION}/$${distro}/"; \
+	else \
+		f="$(@)/$${VERSION}/Dockerfile.$(DISTRO)"; \
+		out="$(OUTPUT)/$(@)/$${VERSION}/$(DISTRO)"; \
+	fi; \
+	docker buildx build --progress=$(PROGRESS) --output="$${out}" -f "$${f}" "$(@)/$${VERSION}"
 
-# Creates a target for building our Dockerfile.
-define build_dockerfile_rule
-$1: output := $(OUTPUT)/$(dir $1)$(subst Dockerfile.,,$(notdir $1))
-$1: $(dir $1)
-	docker buildx build --progress=plain -f $(1) --output $$(OUTPUT)/$(dir $1)$(subst Dockerfile.,,$(notdir $1)) $(dir $1)
 
-# These rules are just convenience
-.PHONY: $(OUTPUT)/$(dir $1)$(subst Dockerfile.,,$(notdir $1))
-$$(OUTPUT)/$(dir $1)$(subst Dockerfile.,,$(notdir $1)): $1
-
-.PHONY: $(dir $1)$(subst Dockerfile.,,$(notdir $1))
-$(dir $1)$(subst Dockerfile.,,$(notdir $1)): $1
-endef
-
-# Generate rules for each dockerfile
-$(foreach f,$(DOCKERFILES),$(eval $(call build_dockerfile_rule,$(f))))
-.PHONY: $(DOCKERFILES)
-
- all: $(DOCKERFILES)
+# `make DISTRO=<name>` or just `make` for all distros
+# Cannot set VERSION when calling this target
+all: $(PROJECTS)
