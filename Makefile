@@ -10,25 +10,22 @@ ifeq ($(V), 1)
 	PROGRESS := plain
 endif
 
+DISTRO ?= ubuntu-18.04
+
 .PHONY: $(PROJECTS)
 $(PROJECTS): # make (project name) VERSION=<project version> DISTRO=<distro>
 	@if [ -z "$(VERSION)" ]; then \
 		dirs=($(shell ls $(@))); \
 		VERSION="$${dirs[-1]}"; \
 	fi; \
-	if [ -z "$(DISTRO)" ]; then \
-		ls=($$(ls $(@)/$${VERSION}/Dockerfile.*)); \
-		f="$${ls[-1]}"; \
-		fileName="$${f##*/}"; \
-		distro=$${fileName#*.}; \
-		out="$(OUTPUT)/$(@)/$${VERSION}/$${distro}/"; \
-	else \
-		f="$(@)/$${VERSION}/Dockerfile.$(DISTRO)"; \
-		out="$(OUTPUT)/$(@)/$${VERSION}/$(DISTRO)"; \
-	fi; \
-	docker buildx build --progress=$(PROGRESS) --output="$${out}" -f "$${f}" "$(@)/$${VERSION}"
+	f="$(@)/$${VERSION}/Dockerfile.$(DISTRO)"; \
+	docker buildx build --progress=$(PROGRESS) --output="$(OUTPUT)/" -f "$${f}" "$(@)/$${VERSION}"
 
+
+test-shell:
+	docker run -it --rm -v /var/lib/docker --tmpfs /run -v /var/lib/containerd --privileged -v $(pwd):/opt/test -w /opt/test $(subst -,:,$(DISTRO))
 
 # `make DISTRO=<name>` or just `make` for all distros
 # Cannot set VERSION when calling this target
 all: $(PROJECTS)
+
