@@ -27,7 +27,7 @@ jobs:
         make containerd VERSION="${{ matrix.containerd }}"
         make runc VERSION="${{ matrix.runc }}"
         mkdir -p ~/go/src/github.com/docker
-        mv out/src/docker ~/go/src/github.com/docker/
+        mv out/src/moby ~/go/src/github.com/docker/docker
     - name: Test
       run: |
         export PATH="$(pwd)/out/bin:${PATH}"
