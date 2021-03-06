@@ -22,4 +22,4 @@ RUN	--mount=from=go,src=/usr/local/go,target=/usr/local/go \
 	PATH="/usr/local/go/bin:${PATH}" GOPATH=/go OUTPUT=/tmp/build make binaries
 
 FROM scratch as binary
-COPY --from=build /go/src/github.com/containerd/containerd/bin/* /
+COPY --from=build /go/src/github.com/containerd/containerd/bin/* /bin/

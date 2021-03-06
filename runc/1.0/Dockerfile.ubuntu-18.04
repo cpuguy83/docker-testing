@@ -18,4 +18,4 @@ RUN \
 
 
 FROM scratch AS binary
-COPY --from=build /go/src/github.com/opencontainers/runc/runc /runc
+COPY --from=build /go/src/github.com/opencontainers/runc/runc /bin/

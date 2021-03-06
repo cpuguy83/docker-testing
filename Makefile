@@ -1,7 +1,7 @@
 SHELL := /usr/bin/env bash -exo pipefail -c
 .DEFAULT_GOAL := all
 
-OUTPUT ?= bin
+OUTPUT ?= out
 export OUTPUT
 
 PROJECTS := engine runc containerd cli
@@ -19,8 +19,7 @@ $(PROJECTS): # make (project name) VERSION=<project version> DISTRO=<distro>
 		VERSION="$${dirs[-1]}"; \
 	fi; \
 	f="$(@)/$${VERSION}/Dockerfile.$(DISTRO)"; \
-	docker buildx build --progress=$(PROGRESS) --output="$(OUTPUT)/" -f "$${f}" "$(@)/$${VERSION}"
-
+	docker buildx build --progress=$(PROGRESS) --output="$(OUTPUT)" -f "$${f}" "$(@)/$${VERSION}"
 
 test-shell:
 	docker run -it --rm -v /var/lib/docker --tmpfs /run -v /var/lib/containerd --privileged -v $(pwd):/opt/test -w /opt/test $(subst -,:,$(DISTRO))
@@ -29,3 +28,5 @@ test-shell:
 # Cannot set VERSION when calling this target
 all: $(PROJECTS)
 
+clean:
+	rm -rf out
