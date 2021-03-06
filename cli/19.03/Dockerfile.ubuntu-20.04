@@ -3,14 +3,15 @@ ARG GO_IMAGE=golang:${GO_VERSION}
 
 FROM --platform=${BUILDPLATFORM} ${GO_IMAGE} AS go
 
-FROM --platform=${BUILDPLATFORM} ubuntu:18.04 AS build
+FROM --platform=${BUILDPLATFORM} ubuntu:20.04 AS build
+ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y  \
 	gcc \
 	git \
 	make
 WORKDIR /go/src/github.com/docker/cli
 ARG REPO=https://github.com/docker/cli.git
-RUN git clone --branch=20.10 --depth=1 ${REPO} .
+RUN git clone --branch=19.03 --depth=1 ${REPO} .
 ENV DISABLE_WARN_OUTSIDE_CONTAINER=1
 RUN	--mount=from=go,src=/usr/local/go,target=/usr/local/go \
 	PATH="/usr/local/go/bin:${PATH}" GOPATH=/go make dynbinary
