@@ -29,4 +29,5 @@ go build -o "${OUTPUT}/dockerd" -tags "${BUILDTAGS}" -ldflags "${LDFLAGS}" -buil
 	export PREFIX="${OUTPUT}"
 	hack/dockerfile/install/install.sh proxy
 	hack/dockerfile/install/install.sh tini
+	hack/dockerfile/install/install.sh gotestsum # Testing dependency
 )
