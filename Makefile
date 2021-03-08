@@ -48,6 +48,6 @@ test:
 	sudo mkdir -p /run/docker-test; \
 	sudo mkdir -p /var/lib/docker-test; \
 	sockDir="$$(mktemp -d)"; \
-	trap "jobs -p | xargs -r kill; wait; rm -rf $${sockDir}" EXIT; \
-	sudo dockerd -D --exec-root=/run/docker-test -g /var/lib/docker-test & \
+	trap "jobs -p | sudo xargs -r kill; wait; rm -rf $${sockDir}" EXIT; \
+	sudo dockerd -D -H "unix://$${sockDir}/docker-test.sock" --exec-root=/run/docker-test --data-root /var/lib/docker-test & \
 	DOCKER_TEST_HOST="$${sockDir}/docker-test.sock" hack/make.sh test-integration
