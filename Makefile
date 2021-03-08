@@ -19,7 +19,7 @@ $(PROJECTS): # make (project name) VERSION=<project version> DISTRO=<distro>
 		VERSION="$${dirs[-1]}"; \
 	fi; \
 	f="$(@)/$${VERSION}/Dockerfile.$(DISTRO)"; \
-	docker buildx build --progress=$(PROGRESS) --output="$(OUTPUT)" -f "$${f}" "$(@)/$${VERSION}"
+	docker buildx build --cache-from="$(CACHE_FROM)" --cache-to="$(CACHE_TO)" --progress=$(PROGRESS) --output="$(OUTPUT)" -f "$${f}" "$(@)/$${VERSION}"
 
 test-shell:
 	docker run -it --rm -v /var/lib/docker --tmpfs /run -v /var/lib/containerd --privileged -v $(pwd):/opt/test -w /opt/test $(subst -,:,$(DISTRO))

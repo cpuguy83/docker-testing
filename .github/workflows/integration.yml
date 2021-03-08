@@ -19,9 +19,22 @@ jobs:
     - name: Install deps
       run: sudo apt-get update && sudo apt-get install -y libseccomp2
     - uses: actions/checkout@v2
+    - name: Setup buildx instance
+      uses: docker/setup-buildx-action@v1
+      with:
+        use: true
+    - name: Login to GHCR
+      run: echo ${{ secrets.CR_PAT }} | docker login https://ghcr.io -u ${{ github.actor }} --password-stdin
     - name: Build all the things
+      env:
+        DISTRO: ${{matrix.os}}
       run: |
         set -e -x
+
+        img_tag="$(echo ${{matrix.os}}${{matrix.engine}}${{matrix.containerd}}${{matrix.runc}}${{matrix.cli}} | sha256sum | awk '{{ print $1 }}')"
+        export CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${img_tag}"
+        export CACHE_TO="ghcr.io/${{ github.repository }}/cache:${img_tag}"
+
         make engine VERSION="${{ matrix.engine }}"
         make cli VERSION="${{ matrix.cli }}"
         make containerd VERSION="${{ matrix.containerd }}"
@@ -30,6 +43,9 @@ jobs:
         mv out/src/moby ~/go/src/github.com/docker/docker
     - name: Test
       run: |
+        set -e
+        sudo systemctl stop docker
+        sudo systemctl stop containerd
         export GOPATH=~/go
         export PATH="$(pwd)/out/bin:${PATH}"
         cd ~/go/src/github.com/docker/docker
