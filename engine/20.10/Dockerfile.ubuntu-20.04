@@ -25,4 +25,4 @@ RUN --mount=src=build.sh,target=/tmp/build.sh \
 
 FROM scratch as binary
 COPY --from=build /tmp/build/* /bin/
-COPY --from=build /go/src/github.com/docker/docker /src/moby
+COPY --from=build /go/src/github.com/docker/docker /src/github.com/docker/docker
