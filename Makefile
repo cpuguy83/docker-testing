@@ -17,7 +17,7 @@ _cache_from := --cache-from="$(CACHE_FROM)"
 endif
 
 ifdef CACHE_TO
-_cache_to := --cache-from="$(CACHE_TO)"
+_cache_to := --cache-to="$(CACHE_TO)"
 endif
 
 .PHONY: $(PROJECTS)
@@ -40,8 +40,8 @@ clean:
 	rm -rf out
 
 test:
-	export GOPATH="$(OUTPUT)"; \
+	export GOPATH="$(PWD)/$(OUTPUT)"; \
 	export DOCKER_INTEGRATION_TESTS_VERIFIED=true; \
-	export PATH="$(OUTPUT)/bin:$${PATH}"
-	cd $${GOPATH}/src/github.com/docker/docker; \
+	export PATH="$(PWD)/$(OUTPUT)/bin:$${PATH}"
+	cd "$(PWD)/$(OUTPUT)/src/github.com/docker/docker"; \
 	hack/make.sh test-integration
