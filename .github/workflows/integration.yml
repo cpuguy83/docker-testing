@@ -47,4 +47,5 @@ jobs:
         set -e
         sudo systemctl stop docker
         sudo systemctl stop containerd
+        trap 'sudo systemctl start docker' EXIT
         make test

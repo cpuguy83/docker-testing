@@ -43,11 +43,12 @@ test: GOPATH := $(PWD)/$(OUTPUT)
 test: DOCKER_INTEGRATION_TESTS_VERIFIED = true
 test:
 	cd "$(PWD)/$(OUTPUT)/src/github.com/docker/docker"; \
-	GOPATH="$(GOPATH)" \
-	PATH="$(PWD)/$(OUTPUT)/bin:$${PATH}" \
 	sudo mkdir -p /run/docker-test; \
 	sudo mkdir -p /var/lib/docker-test; \
 	sockDir="$$(mktemp -d)"; \
 	trap "jobs -p | sudo xargs -r kill; wait; rm -rf $${sockDir}" EXIT; \
-	sudo dockerd -D -H "unix://$${sockDir}/docker-test.sock" --exec-root=/run/docker-test --data-root /var/lib/docker-test & \
-	DOCKER_TEST_HOST="$${sockDir}/docker-test.sock" hack/make.sh test-integration
+	sudo dockerd -D --group="$$(id -g -n)" -H "unix://$${sockDir}/docker-test.sock" --exec-root=/run/docker-test --data-root /var/lib/docker-test > /var/log/docker-test.log 2>&1 & \
+	PATH="$(PWD)/$(OUTPUT)/bin:$${PATH}" \
+	DOCKER_TEST_HOST="$${sockDir}/docker-test.sock" \
+	GOPATH="$(GOPATH)" \
+	hack/make.sh test-integration
