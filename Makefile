@@ -43,5 +43,5 @@ test:
 	export GOPATH="$(OUTPUT)"; \
 	export DOCKER_INTEGRATION_TESTS_VERIFIED=true; \
 	export PATH="$(OUTPUT)/bin:$${PATH}"
-	cd ${GOPATH}/src/github.com/docker/docker; \
+	cd $${GOPATH}/src/github.com/docker/docker; \
 	hack/make.sh test-integration
