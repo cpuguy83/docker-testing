@@ -31,14 +31,15 @@ jobs:
       run: |
         set -e -x
 
-        img_tag="$(echo ${{matrix.os}}${{matrix.engine}}${{matrix.containerd}}${{matrix.runc}}${{matrix.cli}} | sha256sum | awk '{{ print $1 }}')"
-        export CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${img_tag}"
-        export CACHE_TO="ghcr.io/${{ github.repository }}/cache:${img_tag}"
+        engine_tag="$(echo ${{matrix.os}}${{matrix.engine}} | sha256sum | awk '{{ print $1 }}')"
+        cli_tag="$(echo ${{matrix.os}}${{matrix.cli}} | sha256sum | awk '{{ print $1 }}')"
+        containerd_tag="$(echo ${{matrix.os}}${{matrix.containerd}} | sha256sum | awk '{{ print $1 }}')"
+        runc_tag="$(echo ${{matrix.os}}${{matrix.runc}} | sha256sum | awk '{{ print $1 }}')"
 
-        make engine VERSION="${{ matrix.engine }}"
-        make cli VERSION="${{ matrix.cli }}"
-        make containerd VERSION="${{ matrix.containerd }}"
-        make runc VERSION="${{ matrix.runc }}"
+        make engine VERSION="${{ matrix.engine }}" CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${engine_tag}" CACHE_TO="ghcr.io/${{ github.repository }}/cache:${engine_tag}"
+        make cli VERSION="${{ matrix.cli }}" CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${cli_tag}" CACHE_TO="ghcr.io/${{ github.repository }}/cache:${cli_tag}"
+        make containerd VERSION="${{ matrix.containerd }}" CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${containerd_tag}" CACHE_TO="ghcr.io/${{ github.repository }}/cache:${containerd_tag}"
+        make runc VERSION="${{ matrix.runc }}" CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${runc_tag}" CACHE_TO="ghcr.io/${{ github.repository }}/cache:${runc_tag}"
         mkdir -p ~/go/src/github.com/docker
     - name: Test
       env:
