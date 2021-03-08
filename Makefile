@@ -39,9 +39,10 @@ all: $(PROJECTS)
 clean:
 	rm -rf out
 
+test: GOPATH := $(PWD)/$(OUTPUT)
+test: DOCKER_INTEGRATION_TESTS_VERIFIED = true
 test:
-	export GOPATH="$(PWD)/$(OUTPUT)"; \
-	export DOCKER_INTEGRATION_TESTS_VERIFIED=true; \
-	export PATH="$(PWD)/$(OUTPUT)/bin:$${PATH}"
 	cd "$(PWD)/$(OUTPUT)/src/github.com/docker/docker"; \
+	GOPATH="$(GOPATH)" \
+	PATH="$(PWD)/$(OUTPUT)/bin:$${PATH}" \
 	hack/make.sh test-integration
