@@ -47,7 +47,7 @@ test:
 	sudo mkdir -p /var/lib/docker-test; \
 	sockDir="$$(mktemp -d)"; \
 	trap "jobs -p | sudo xargs -r kill; wait; rm -rf $${sockDir}" EXIT; \
-	sudo dockerd -D --group="$$(id -g -n)" -H "unix://$${sockDir}/docker-test.sock" --exec-root=/run/docker-test --data-root /var/lib/docker-test > /var/log/docker-test.log 2>&1 & \
+	sudo dockerd -D --group="$$(id -g -n)" -H "unix://$${sockDir}/docker-test.sock" --exec-root=/run/docker-test --data-root /var/lib/docker-test > "$(OUTPUT)/docker.log" 2>&1 & \
 	PATH="$(PWD)/$(OUTPUT)/bin:$${PATH}" \
 	DOCKER_TEST_HOST="unix://$${sockDir}/docker-test.sock" \
 	GOPATH="$(GOPATH)" \
