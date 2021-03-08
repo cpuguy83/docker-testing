@@ -40,7 +40,6 @@ jobs:
         make cli VERSION="${{ matrix.cli }}" CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${cli_tag}" CACHE_TO="ghcr.io/${{ github.repository }}/cache:${cli_tag}"
         make containerd VERSION="${{ matrix.containerd }}" CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${containerd_tag}" CACHE_TO="ghcr.io/${{ github.repository }}/cache:${containerd_tag}"
         make runc VERSION="${{ matrix.runc }}" CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${runc_tag}" CACHE_TO="ghcr.io/${{ github.repository }}/cache:${runc_tag}"
-        mkdir -p ~/go/src/github.com/docker
     - name: Test
       env:
         DOCKER_INTEGRATION_TESTS_VERIFIED: true
