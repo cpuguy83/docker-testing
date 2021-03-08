@@ -31,10 +31,10 @@ jobs:
       run: |
         set -e -x
 
-        engine_tag="$(echo ${{matrix.os}}${{matrix.engine}} | sha256sum | awk '{{ print $1 }}')"
-        cli_tag="$(echo ${{matrix.os}}${{matrix.cli}} | sha256sum | awk '{{ print $1 }}')"
-        containerd_tag="$(echo ${{matrix.os}}${{matrix.containerd}} | sha256sum | awk '{{ print $1 }}')"
-        runc_tag="$(echo ${{matrix.os}}${{matrix.runc}} | sha256sum | awk '{{ print $1 }}')"
+        engine_tag="engine-$(echo ${{matrix.os}}${{matrix.engine}} | sha256sum | awk '{{ print $1 }}')"
+        cli_tag="cli-$(echo ${{matrix.os}}${{matrix.cli}} | sha256sum | awk '{{ print $1 }}')"
+        containerd_tag="containerd-$(echo ${{matrix.os}}${{matrix.containerd}} | sha256sum | awk '{{ print $1 }}')"
+        runc_tag="runc-$(echo ${{matrix.os}}${{matrix.runc}} | sha256sum | awk '{{ print $1 }}')"
 
         make engine VERSION="${{ matrix.engine }}" CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${engine_tag}" CACHE_TO="ghcr.io/${{ github.repository }}/cache:${engine_tag}"
         make cli VERSION="${{ matrix.cli }}" CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${cli_tag}" CACHE_TO="ghcr.io/${{ github.repository }}/cache:${cli_tag}"
