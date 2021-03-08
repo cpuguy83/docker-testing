@@ -40,13 +40,11 @@ jobs:
         make containerd VERSION="${{ matrix.containerd }}"
         make runc VERSION="${{ matrix.runc }}"
         mkdir -p ~/go/src/github.com/docker
-        mv out/src/moby ~/go/src/github.com/docker/docker
     - name: Test
+      env:
+        DOCKER_INTEGRATION_TESTS_VERIFIED: true
       run: |
         set -e
         sudo systemctl stop docker
         sudo systemctl stop containerd
-        export GOPATH=~/go
-        export PATH="$(pwd)/out/bin:${PATH}"
-        cd ~/go/src/github.com/docker/docker
-        hack/make.sh test-integration
+        make test

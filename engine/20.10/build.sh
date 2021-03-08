@@ -30,4 +30,5 @@ go build -o "${OUTPUT}/dockerd" -tags "${BUILDTAGS}" -ldflags "${LDFLAGS}" -buil
 	hack/dockerfile/install/install.sh proxy
 	hack/dockerfile/install/install.sh tini
 	hack/dockerfile/install/install.sh gotestsum # Testing dependency
+	hack/make.sh build-integration-test-binary
 )
