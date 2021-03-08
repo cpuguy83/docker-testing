@@ -21,7 +21,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Build all the things
       run: |
-        set -e
+        set -e -x
         make engine VERSION="${{ matrix.engine }}"
         make cli VERSION="${{ matrix.cli }}"
         make containerd VERSION="${{ matrix.containerd }}"
@@ -30,6 +30,7 @@ jobs:
         mv out/src/moby ~/go/src/github.com/docker/docker
     - name: Test
       run: |
+        export GOPATH=~/go
         export PATH="$(pwd)/out/bin:${PATH}"
         cd ~/go/src/github.com/docker/docker
         hack/make.sh test-integration
