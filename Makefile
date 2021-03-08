@@ -45,9 +45,9 @@ test:
 	cd "$(PWD)/$(OUTPUT)/src/github.com/docker/docker"; \
 	GOPATH="$(GOPATH)" \
 	PATH="$(PWD)/$(OUTPUT)/bin:$${PATH}" \
-	mkdir -p /run/docker-test; \
-	mkdir -p /var/lib/docker-test; \
+	sudo mkdir -p /run/docker-test; \
+	sudo mkdir -p /var/lib/docker-test; \
 	sockDir="$$(mktemp -d)"; \
 	trap "jobs -p | xargs -r kill; wait; rm -rf $${sockDir}" EXIT; \
-	dockerd -D --exec-root=/run/docker-test -g /var/lib/docker-test; \
+	sudo dockerd -D --exec-root=/run/docker-test -g /var/lib/docker-test & \
 	DOCKER_TEST_HOST="$${sockDir}/docker-test.sock" hack/make.sh test-integration
