@@ -64,4 +64,4 @@ jobs:
       with:
         name: daemon-log
         path: out/docker.log
-        rention-days: 1
+        retention-days: 1
