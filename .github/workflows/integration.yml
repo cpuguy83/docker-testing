@@ -40,19 +40,10 @@ jobs:
         make cli VERSION="${{ matrix.cli }}" CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${cli_tag}" CACHE_TO="ghcr.io/${{ github.repository }}/cache:${cli_tag}"
         make containerd VERSION="${{ matrix.containerd }}" CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${containerd_tag}" CACHE_TO="ghcr.io/${{ github.repository }}/cache:${containerd_tag}"
         make runc VERSION="${{ matrix.runc }}" CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${runc_tag}" CACHE_TO="ghcr.io/${{ github.repository }}/cache:${runc_tag}"
-    - name: Frozen Images
-      run: |
-        set -e
-
-        frozen_out="out/frozenimg_img"
-        docker buildx build --target=frozen-images --output "${frozen_out}" ./out/src/github.com/docker/docker
-        sudo mkdir /docker-frozen-images
-        sudo chown "$(id -u):$(id -g)" /docker-frozen-images
-        mv "${frozen_out}/build/*" /docker-frozen-images/
-        rm -rf "${frozen_out}
     - name: Test
       env:
         DOCKER_INTEGRATION_TESTS_VERIFIED: true
+        OUTPUT: out
       run: |
         set -e
         sudo systemctl stop docker
@@ -62,6 +53,7 @@ jobs:
     - uses: actions/upload-artifact@v2
       if: failure() || cancelled()
       with:
-        name: ${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }}
-        path: out/docker.log
+        name: os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }}
+        path: |
+          out/docker.log
         retention-days: 1
