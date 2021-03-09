@@ -49,3 +49,9 @@ jobs:
         sudo systemctl stop containerd
         trap 'sudo systemctl start docker' EXIT
         make test
+    - uses: actions/upload-artifact@v2
+      if: failure()
+      with:
+        name: daemon-log
+        path: out/docker.log
+        rention-days: 1
