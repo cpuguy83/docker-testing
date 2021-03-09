@@ -50,7 +50,7 @@ jobs:
         trap 'sudo systemctl start docker' EXIT
         make test
     - uses: actions/upload-artifact@v2
-      if: failure()
+      if: failure() || cancelled()
       with:
         name: daemon-log
         path: out/docker.log
