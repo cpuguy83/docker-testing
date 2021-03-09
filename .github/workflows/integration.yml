@@ -45,7 +45,7 @@ jobs:
         set -e
 
         frozen_out="out/frozenimg_img"
-        docker buildx build --target=frozen-images --output "${frozen_out}" ./src/github.com/docker/docker
+        docker buildx build --target=frozen-images --output "${frozen_out}" ./out/src/github.com/docker/docker
         sudo mkdir /docker-frozen-images
         sudo chown "$(id -u):$(id -g)" /docker-frozen-images
         mv "${frozen_out}/build/*" /docker-frozen-images/
