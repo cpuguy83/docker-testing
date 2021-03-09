@@ -62,6 +62,6 @@ jobs:
     - uses: actions/upload-artifact@v2
       if: failure() || cancelled()
       with:
-        name: daemon-log
+        name: ${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }}
         path: out/docker.log
         retention-days: 1
