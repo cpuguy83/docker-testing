@@ -4,24 +4,34 @@ ARG GO_IMAGE=golang:${GO_VERSION}
 FROM --platform=${BUILDPLATFORM} ${GO_IMAGE} AS go
 
 FROM --platform=${BUILDPLATFORM} ubuntu:18.04 AS build
-RUN apt-get update && apt-get install -y  \
-	cmake \
-	dh-apparmor \
-	dh-exec \
-	git \
-	libapparmor-dev \
-	btrfs-tools \
-	libdevmapper-dev \
-	libltdl-dev \
-	libsystemd-dev \
-	pkg-config
+RUN echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
+ARG APT_MIRROR=http://azure.archive.ubuntu.com/ubuntu
+RUN [ -z "${APT_MIRROR}" ] && exit 0; sed -i "s,^deb http://archive\.ubuntu\.com/ubuntu,deb ${APT_MIRROR}," /etc/apt/sources.list && cat /etc/apt/sources.list
+RUN \
+	--mount=type=cache,target=/var/lib/apt \
+	--mount=type=cache,target=/var/cache/apt \
+	apt-get update && apt-get install -y  \
+		cmake \
+		dh-apparmor \
+		dh-exec \
+		git \
+		jq \
+		libapparmor-dev \
+		btrfs-tools \
+		libdevmapper-dev \
+		libltdl-dev \
+		libsystemd-dev \
+		pkg-config
 WORKDIR /go/src/github.com/docker/docker
 ARG REPO=https://github.com/moby/moby.git
-RUN git clone --branch=20.10 --depth=1 ${REPO} .
+RUN git clone --branch=20.10 --depth=1 "${REPO}" .
+ARG TARGETARCH
 RUN --mount=src=build.sh,target=/tmp/build.sh \
 	--mount=from=go,src=/usr/local/go,target=/usr/local/go \
+	--mount=type=cache,id=gocache-ubuntu-1804,target=/root/.cache/go-build \
+	--mount=type=cache,target=/go/pkg/mod \
 	PATH="/usr/local/go/bin:${PATH}" GOPATH=/go OUTPUT=/tmp/build /tmp/build.sh
 
 FROM scratch as binary
-COPY --from=build /tmp/build/* /bin/
+COPY --from=build /tmp/build/ /
 COPY --from=build /go/src/github.com/docker/docker /src/github.com/docker/docker

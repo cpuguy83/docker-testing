@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y  \
 	dh-apparmor \
 	dh-exec \
 	git \
+	jq \
 	libapparmor-dev \
 	libbtrfs-dev \
 	libdevmapper-dev \
@@ -18,9 +19,12 @@ RUN apt-get update && apt-get install -y  \
 	pkg-config
 WORKDIR /go/src/github.com/docker/docker
 ARG REPO=https://github.com/moby/moby.git
-RUN git clone --branch=20.10 --depth=1 ${REPO} .
+RUN git clone --branch=20.10 --depth=1 "${REPO}" .
+ARG TARGETARCH
 RUN --mount=src=build.sh,target=/tmp/build.sh \
 	--mount=from=go,src=/usr/local/go,target=/usr/local/go \
+	--mount=type=cache,id=gocache-ubuntu-2004,target=/root/.cache/go-build \
+	--mount=type=cache,target=/go/pkg/mod \
 	PATH="/usr/local/go/bin:${PATH}" GOPATH=/go OUTPUT=/tmp/build /tmp/build.sh
 
 FROM scratch as binary
