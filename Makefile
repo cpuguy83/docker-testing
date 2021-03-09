@@ -41,13 +41,14 @@ clean:
 
 test: GOPATH := $(PWD)/$(OUTPUT)
 test: DOCKER_INTEGRATION_TESTS_VERIFIED = true
+test: ARTIFACTS_DIR := $(PWD)/$(OUTPUT)
 test:
 	cd "$(PWD)/$(OUTPUT)/src/github.com/docker/docker"; \
 	sudo mkdir -p /run/docker-test; \
 	sudo mkdir -p /var/lib/docker-test; \
 	sockDir="$$(mktemp -d)"; \
 	trap "jobs -p | sudo xargs -r kill; wait; rm -rf $${sockDir}" EXIT; \
-	sudo dockerd -D --group="$$(id -g -n)" -H "unix://$${sockDir}/docker-test.sock" --exec-root=/run/docker-test --data-root /var/lib/docker-test > "$(OUTPUT)/docker.log" 2>&1 & \
+	sudo dockerd -D --group="$$(id -g -n)" -H "unix://$${sockDir}/docker-test.sock" --exec-root=/run/docker-test --data-root /var/lib/docker-test > "$(ARTIFACTS_DIR)/docker.log" 2>&1 & \
 	PATH="$(PWD)/$(OUTPUT)/bin:$${PATH}" \
 	DOCKER_TEST_HOST="unix://$${sockDir}/docker-test.sock" \
 	GOPATH="$(GOPATH)" \
