@@ -58,6 +58,6 @@ test:
 	cd "$(ARTIFACTS_DIR)/src/github.com/docker/docker"; \
 	mkdir -p "$(ARTIFACTS_DIR)/emptyfs"; \
 	DOCKER_HOST="$${DOCKER_HOST}" DEST="$(ARTIFACTS_DIR)/emptyfs" sh hack/make/.ensure-emptyfs; \
-	DOCKER_TEST_HOST="unix://$${DOCKER_HOST}" \
+	DOCKER_TEST_HOST="$${DOCKER_HOST}" \
 	GOPATH="$(GOPATH)" \
 	hack/make.sh test-integration
