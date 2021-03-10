@@ -72,7 +72,7 @@ test:
 	export PATH="$${artifacts_dir}/bin:$${PATH}"; \
 	mkdir -p "$${runDir}"; \
 	export DOCKER_HOST="unix://$${runDir}/docker.sock"; \
-	dockerd -D --group="$$(id -g -n)" -H "$${DOCKER_HOST}"  > "$${artifacts_dir}/docker.log" 2>&1 & \
+	dockerd -D --group="$$(id -g -n)" -H "$${DOCKER_HOST}"  > "$${artifacts_dir}/tests/docker.log" 2>&1 & \
 	while true; do docker version && break; sleep 1; done; \
 	docker info; \
 	tar -cC "$${artifacts_dir}/frozen" . |  docker load; \

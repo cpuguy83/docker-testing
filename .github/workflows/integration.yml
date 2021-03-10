@@ -7,6 +7,7 @@ jobs:
     name: Integration Tests
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: ["ubuntu-20.04", "ubuntu-18.04"]
         engine: ["20.10"]
@@ -46,13 +47,16 @@ jobs:
         APT_MIRROR: http://azure.archive.ubuntu.com/ubuntu
         CACHE_TO: ghcr.io/${{github.repository}}/${{matrix.os}}:latest
         CACHE_FROM: ghcr.io/${{github.repository}}/${{matrix.os}}:latest
-      run: |
-        make test/env DISTRO=${{matrix.os}}
+      run: make test/env DISTRO=${{matrix.os}}
+    - name: Cleanup
+      if: always()
+      run: sudo chown -R $(id -u):$(id -g) out
     - uses: actions/upload-artifact@v2
       if: failure() || cancelled()
       with:
         name: os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }}
         path: |
-          out/docker.log
-          out/bundles/test-integration
+          out/tests/docker.log
+          out/src/github.com/docker/docker/bundles/**
+          !out/src/github.com/docker/docker/bundles/**/root
         retention-days: 1
