@@ -39,8 +39,6 @@ all: $(PROJECTS)
 clean:
 	rm -rf out
 
-test: GOPATH := $(PWD)/$(OUTPUT)
-test: DOCKER_INTEGRATION_TESTS_VERIFIED = true
 test: ARTIFACTS_DIR := $(PWD)/$(OUTPUT)
 test:
 	runDir="$(ARTIFACTS_DIR)/tests/run"; \
@@ -59,5 +57,6 @@ test:
 	mkdir -p "$(ARTIFACTS_DIR)/emptyfs"; \
 	DOCKER_HOST="$${DOCKER_HOST}" DEST="$(ARTIFACTS_DIR)/emptyfs" sh hack/make/.ensure-emptyfs; \
 	DOCKER_TEST_HOST="$${DOCKER_HOST}" \
-	GOPATH="$(GOPATH)" \
+	GOPATH="$(PWD)/$(OUTPUT)" \
+	DOCKER_INTEGRATION_TESTS_VERIFIED=true \
 	hack/make.sh test-integration
