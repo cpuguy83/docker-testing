@@ -5,6 +5,9 @@ FROM --platform=${BUILDPLATFORM} ${GO_IMAGE} AS go
 
 FROM --platform=${BUILDPLATFORM} ubuntu:20.04 AS build
 ARG DEBIAN_FRONTEND=noninteractive
+RUN echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
+ARG APT_MIRROR=http://azure.archive.ubuntu.com/ubuntu
+RUN [ -z "${APT_MIRROR}" ] && exit 0; sed -i "s,^deb http://archive\.ubuntu\.com/ubuntu,deb ${APT_MIRROR}," /etc/apt/sources.list && cat /etc/apt/sources.list
 RUN apt-get update && apt-get install -y  \
 	cmake \
 	dh-apparmor \
@@ -28,5 +31,5 @@ RUN --mount=src=build.sh,target=/tmp/build.sh \
 	PATH="/usr/local/go/bin:${PATH}" GOPATH=/go OUTPUT=/tmp/build /tmp/build.sh
 
 FROM scratch as binary
-COPY --from=build /tmp/build/* /bin/
+COPY --from=build /tmp/build/ /
 COPY --from=build /go/src/github.com/docker/docker /src/github.com/docker/docker
