@@ -43,20 +43,21 @@ test: GOPATH := $(PWD)/$(OUTPUT)
 test: DOCKER_INTEGRATION_TESTS_VERIFIED = true
 test: ARTIFACTS_DIR := $(PWD)/$(OUTPUT)
 test:
-	sudo mkdir -p /run/docker-test; \
-	sudo mkdir -p /var/lib/docker-test; \
-	sockDir="$$(mktemp -d)"; \
-	trap "jobs -p | sudo xargs -r kill; wait; rm -rf $${sockDir}" EXIT; \
-	ls -lh $(ARTIFACTS_DIR)/bin; \
-	PATH="$(ARTIFACTS_DIR)/bin:$${PATH}"; \
-	export PATH; \
-	sudo PATH="$${PATH}" dockerd -D --group="$$(id -g -n)" -H "unix://$${sockDir}/docker-test.sock" --exec-root=/run/docker-test --data-root /var/lib/docker-test > "$(ARTIFACTS_DIR)/docker.log" 2>&1 & \
-	export DOCKER_HOST="unix://$${sockDir}/docker-test.sock"; \
+	runDir="$(ARTIFACTS_DIR)/tests/run"; \
+	dataDir="$(ARTIFACTS_DIR)/tests/data"; \
+	trap 'jobs -p | sudo xargs -r kill; wait; rm -rf "$(ARTIFACTS_DIR)/tests/run"; rm -rf "$(ARTIFACTS_DIR)/tests/data";' EXIT; \
+	ls -lh "$(ARTIFACTS_DIR)/"; \
+	ls -lh "$(ARTIFACTS_DIR)/bin"; \
+	export PATH="$(ARTIFACTS_DIR)/bin:$${PATH}"; \
+	mkdir -p "$${runDir}"; \
+	export DOCKER_HOST="unix://$${runDir}/docker.sock"; \
+	sudo PATH="$${PATH}" dockerd -D --group="$$(id -g -n)" -H "$${DOCKER_HOST}" --exec-root="${runDir}/exec" --data-root="$${dataDir}" > "$(ARTIFACTS_DIR)/docker.log" 2>&1 & \
 	while true; do docker version && break; sleep 1; done; \
+	docker info; \
 	tar -cC "$(ARTIFACTS_DIR)/frozen" . |  docker load; \
 	cd "$(ARTIFACTS_DIR)/src/github.com/docker/docker"; \
 	mkdir -p "$(ARTIFACTS_DIR)/emptyfs"; \
-	DEST="$(ARTIFACTS_DIR)/emptyfs" sh hack/make/.ensure-emptyfs; \
-	DOCKER_TEST_HOST="unix://$${sockDir}/docker-test.sock" \
+	DOCKER_HOST="$${DOCKER_HOST}" DEST="$(ARTIFACTS_DIR)/emptyfs" sh hack/make/.ensure-emptyfs; \
+	DOCKER_TEST_HOST="unix://$${DOCKER_HOST}" \
 	GOPATH="$(GOPATH)" \
 	hack/make.sh test-integration
