@@ -8,7 +8,10 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
 ARG APT_MIRROR=http://azure.archive.ubuntu.com/ubuntu
 RUN [ -z "${APT_MIRROR}" ] && exit 0; sed -i "s,^deb http://archive\.ubuntu\.com/ubuntu,deb ${APT_MIRROR}," /etc/apt/sources.list && cat /etc/apt/sources.list
-RUN apt-get update && apt-get install -y  \
+RUN \
+	--mount=type=cache,target=/var/lib/apt \
+	--mount=type=cache,target=/var/cache/apt \
+	apt-get update && apt-get install -y  \
 	cmake \
 	dh-apparmor \
 	dh-exec \

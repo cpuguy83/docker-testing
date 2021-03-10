@@ -4,6 +4,8 @@ SHELL := /usr/bin/env bash -exo pipefail -c
 OUTPUT ?= out
 export OUTPUT
 
+export APT_MIRROR
+
 PROJECTS := engine runc containerd cli
 PROGRESS := auto
 ifeq ($(V), 1)
@@ -39,24 +41,47 @@ all: $(PROJECTS)
 clean:
 	rm -rf out
 
-test: ARTIFACTS_DIR := $(PWD)/$(OUTPUT)
+$(OUTPUT)/$(DISTRO)/imageid: Dockerfile.$(DISTRO)
+	mkdir -p $(dir $@)
+	DOCKER_BUILDKIT=1 docker build $(_cache_from) --build-arg APT_MIRROR --iidfile="$(@)" -< ./Dockerfile.$(DISTRO)
+
+export TEST_FILTER
+
+test/env: $(OUTPUT)/$(DISTRO)/imageid
+	[ -t 0 ] && withTty="--tty"; \
+	docker run \
+          --rm \
+		  -i \
+		  $${withTty} \
+		  --init \
+		  -e TEST_FILTER \
+          --privileged \
+          --mount type=bind,source=$(PWD)/$(OUTPUT)/frozen,target=/docker-frozen-images \
+          --mount type=bind,source=$(PWD),target=/usr/local/docker-test \
+          --tmpfs /usr/local/docker-test/out/tests/run \
+		  -v /var/lib/docker \
+		  --tmpfs /run \
+          -w /usr/local/docker-test \
+          "$$(cat $(<))" make test
+
 test:
-	runDir="$(ARTIFACTS_DIR)/tests/run"; \
-	dataDir="$(ARTIFACTS_DIR)/tests/data"; \
-	trap 'jobs -p | sudo xargs -r kill; wait; rm -rf "$(ARTIFACTS_DIR)/tests/run"; rm -rf "$(ARTIFACTS_DIR)/tests/data";' EXIT; \
-	ls -lh "$(ARTIFACTS_DIR)/"; \
-	ls -lh "$(ARTIFACTS_DIR)/bin"; \
-	export PATH="$(ARTIFACTS_DIR)/bin:$${PATH}"; \
+	artifacts_dir="$(shell pwd)/$(OUTPUT)"; \
+	runDir="$${artifacts_dir}/tests/run"; \
+	dataDir="$${artifacts_dir}/tests/data"; \
+	trap 'jobs -p | xargs -r kill; wait; rm -rf "$${artifacts_dir}/tests/run"; rm -rf "$${artifacts_dir}/tests/data";' EXIT; \
+	export PATH="$${artifacts_dir}/bin:$${PATH}"; \
 	mkdir -p "$${runDir}"; \
 	export DOCKER_HOST="unix://$${runDir}/docker.sock"; \
-	sudo PATH="$${PATH}" dockerd -D --group="$$(id -g -n)" -H "$${DOCKER_HOST}" --exec-root="${runDir}/exec" --data-root="$${dataDir}" > "$(ARTIFACTS_DIR)/docker.log" 2>&1 & \
+	dockerd -D --group="$$(id -g -n)" -H "$${DOCKER_HOST}"  > "$${artifacts_dir}/docker.log" 2>&1 & \
 	while true; do docker version && break; sleep 1; done; \
 	docker info; \
-	tar -cC "$(ARTIFACTS_DIR)/frozen" . |  docker load; \
-	cd "$(ARTIFACTS_DIR)/src/github.com/docker/docker"; \
-	mkdir -p "$(ARTIFACTS_DIR)/emptyfs"; \
-	DOCKER_HOST="$${DOCKER_HOST}" DEST="$(ARTIFACTS_DIR)/emptyfs" sh hack/make/.ensure-emptyfs; \
+	tar -cC "$${artifacts_dir}/frozen" . |  docker load; \
+	cd "$${artifacts_dir}/src/github.com/docker/docker"; \
+	mkdir -p "$${artifacts_dir}/emptyfs"; \
+	DOCKER_HOST="$${DOCKER_HOST}" DEST="$${artifacts_dir}/emptyfs" sh hack/make/.ensure-emptyfs; \
 	DOCKER_TEST_HOST="$${DOCKER_HOST}" \
-	GOPATH="$(PWD)/$(OUTPUT)" \
+	GOPATH="$${artifacts_dir}" \
 	DOCKER_INTEGRATION_TESTS_VERIFIED=true \
+	DOCKER_GITCOMMIT="NOBODYCARES" \
+	DEST="${artifacts_dir}/test-integration" \
 	hack/make.sh test-integration

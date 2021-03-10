@@ -1,0 +1,23 @@
+ARG GO_VERSION=1.13.15
+ARG GO_IMAGE=golang:${GO_VERSION}
+
+FROM --platform=${BUILDPLATFORM} ${GO_IMAGE} AS go
+
+FROM ubuntu:20.04
+ARG DEBIAN_FRONTEND=noninteractive
+RUN echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
+ARG APT_MIRROR
+RUN [ -z "${APT_MIRROR}" ] && exit 0; sed -i "s,^deb http://archive\.ubuntu\.com/ubuntu,deb ${APT_MIRROR}," /etc/apt/sources.list && cat /etc/apt/sources.list
+RUN \
+	--mount=type=cache,target=/var/lib/apt \
+	--mount=type=cache,target=/var/cache/apt \
+	apt-get update && apt-get install -y  \
+		apparmor \
+		btrfs-progs \
+		gcc \
+		iptables \
+		libseccomp2 \
+		lvm2 \
+		make
+COPY --from=go /usr/local/go /usr/local/go
+ENV PATH=/usr/local/go/bin:${PATH}

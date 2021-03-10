@@ -43,17 +43,16 @@ jobs:
     - name: Test
       env:
         DOCKER_INTEGRATION_TESTS_VERIFIED: true
-        OUTPUT: out
+        APT_MIRROR: http://azure.archive.ubuntu.com/ubuntu
+        CACHE_TO: ghcr.io/${{github.repository}}/${{matrix.os}}:latest
+        CACHE_FROM: ghcr.io/${{github.repository}}/${{matrix.os}}:latest
       run: |
-        set -e
-        sudo systemctl stop docker
-        sudo systemctl stop containerd
-        trap 'sudo systemctl start docker' EXIT
-        make test
+        make test/env DISTRO=${{matrix.os}}
     - uses: actions/upload-artifact@v2
       if: failure() || cancelled()
       with:
         name: os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }}
         path: |
           out/docker.log
+          out/bundles/test-integration
         retention-days: 1
