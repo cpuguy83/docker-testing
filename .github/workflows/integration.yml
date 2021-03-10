@@ -50,13 +50,21 @@ jobs:
       run: make test/env DISTRO=${{matrix.os}}
     - name: Cleanup
       if: always()
-      run: sudo chown -R $(id -u):$(id -g) out
+      run: |
+        sudo chown -R $(id -u):$(id -g) out
+        mv out/src/github.com/docker/docker/bundles/**
     - uses: actions/upload-artifact@v2
       if: failure() || cancelled()
       with:
         name: os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }}
         path: |
           out/tests/docker.log
-          out/src/github.com/docker/docker/bundles/**
-          !out/src/github.com/docker/docker/bundles/**/root
+          out/bundles/**
+          !out/bundles/**/root
         retention-days: 1
+    - name: Publish Test Results
+      uses: EnricoMi/publish-unit-test-result-action@v1
+      if: always()
+      with:
+        files: out/bundles/*.xml
+        report_individual_runs: true
