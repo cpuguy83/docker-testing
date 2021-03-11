@@ -50,19 +50,19 @@ export TEST_FILTER
 test/env: $(OUTPUT)/$(DISTRO)/imageid
 	[ -t 0 ] && withTty="--tty"; \
 	docker run \
-          --rm \
-		  -i \
-		  $${withTty} \
-		  --init \
-		  -e TEST_FILTER \
-          --privileged \
-          --mount type=bind,source=$(PWD)/$(OUTPUT)/frozen,target=/docker-frozen-images \
-          --mount type=bind,source=$(PWD),target=/usr/local/docker-test \
-          --tmpfs /usr/local/docker-test/out/tests/run \
-		  -v /var/lib/docker \
-		  --tmpfs /run \
-          -w /usr/local/docker-test \
-          "$$(cat $(<))" make test
+		--rm \
+		-i \
+		$${withTty} \
+		--init \
+		-e TEST_FILTER \
+		--privileged \
+		--mount type=bind,source=$(PWD)/$(OUTPUT)/frozen,target=/docker-frozen-images \
+		--mount type=bind,source=$(PWD),target=/usr/local/docker-test \
+		--tmpfs /usr/local/docker-test/out/tests/run \
+		-v /var/lib/docker \
+		--tmpfs /run \
+		-w /usr/local/docker-test \
+		"$$(cat $(<))" make test
 
 test:
 	artifacts_dir="$(shell pwd)/$(OUTPUT)"; \
