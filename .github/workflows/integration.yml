@@ -19,10 +19,6 @@ jobs:
         runc: ["1.0"]
         cli: ["20.10", "19.03"]
     steps:
-    - name: Install go
-      uses: actions/setup-go@v2
-    - name: Install deps
-      run: sudo apt-get update && sudo apt-get install -y libseccomp2
     - uses: actions/checkout@v2
     - name: Setup buildx instance
       uses: docker/setup-buildx-action@v1
@@ -52,12 +48,7 @@ jobs:
         CACHE_TO: ghcr.io/${{github.repository}}/${{matrix.os}}:latest
         CACHE_FROM: ghcr.io/${{github.repository}}/${{matrix.os}}:latest
         TEST_FILTER: ${{ github.event.inputs.testFilter }}
-      run: make test/env DISTRO=${{matrix.os}}
-    - name: Cleanup
-      if: always()
-      run: |
-        sudo chown -R $(id -u):$(id -g) out
-        mv out/src/github.com/docker/docker/bundles/* out/tests/
+      run: make test DISTRO=${{matrix.os}}
     - uses: actions/upload-artifact@v2
       if: failure() || cancelled()
       with:
@@ -70,5 +61,5 @@ jobs:
       uses: EnricoMi/publish-unit-test-result-action@v1
       if: always()
       with:
-        files: out/**/*.xml
+        files: out/tests/test-integration/*.xml
         report_individual_runs: true

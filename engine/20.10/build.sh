@@ -3,8 +3,6 @@
 set -e -o xtrace
 
 : ${VERSION:=dev}
-: ${OUTPUT:="$(pwd)"}
-export OUTPUT
 
 : ${GOPATH:=~/go}
 TINI_COMMIT="$(. ${GOPATH}/src/github.com/docker/docker/hack/dockerfile/install/tini.installer; echo ${TINI_COMMIT})"
@@ -27,7 +25,7 @@ go build -o "${OUTPUT}/bin/dockerd" -tags "${BUILDTAGS}" -ldflags "${LDFLAGS}" -
 export PREFIX="${OUTPUT}/bin/"
 hack/dockerfile/install/install.sh proxy
 hack/dockerfile/install/install.sh tini
-hack/make.sh build-integration-test-binary
+TEST_FILTER=${TEST_FILTER} hack/make.sh build-integration-test-binary
 hack/dockerfile/install/install.sh gotestsum # Testing dependency
 contrib/download-frozen-image-v2.sh "${OUTPUT}/frozen" \
 	buildpack-deps:buster@sha256:d0abb4b1e5c664828b93e8b6ac84d10bce45ee469999bef88304be04a2709491 \
