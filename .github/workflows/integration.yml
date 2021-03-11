@@ -1,6 +1,10 @@
 name: Integration
 on:
   workflow_dispatch:
+    inputs:
+      testFilter:
+        description: Run a subset of tests(TEST_FILTER)
+        default: ''
 
 jobs:
   integration-linux:
@@ -47,6 +51,7 @@ jobs:
         APT_MIRROR: http://azure.archive.ubuntu.com/ubuntu
         CACHE_TO: ghcr.io/${{github.repository}}/${{matrix.os}}:latest
         CACHE_FROM: ghcr.io/${{github.repository}}/${{matrix.os}}:latest
+        TEST_FILTER: ${{ github.event.inputs.testFilter }}
       run: make test/env DISTRO=${{matrix.os}}
     - name: Cleanup
       if: always()
