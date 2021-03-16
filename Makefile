@@ -89,6 +89,10 @@ $(OUTPUT)/$(DISTRO)/imageid: Dockerfile.$(DISTRO)
 	mkdir -p $(dir $@)
 	DOCKER_BUILDKIT=1 docker build $(_cache_from) --build-arg APT_MIRROR --iidfile="$(@)" -< ./Dockerfile.$(DISTRO)
 
+ifdef DOCKER_INTEGRATION_TESTS_VERIFIED
+export DOCKER_INTEGRATION_TESTS_VERIFIED
+endif
+
 test: $(OUTPUT)/$(DISTRO)/imageid
 	[ -t 0 ] && withTty="--tty"; \
 	docker run \
@@ -99,8 +103,8 @@ test: $(OUTPUT)/$(DISTRO)/imageid
 		-e TEST_FILTER \
 		-e GOCACHE="$(PWD)/$(OUTPUT)/gobuildcache" \
 		-e DOCKER_GITCOMMIT="NOBODYCARES" \
+		-e DOCKER_INTEGRATION_TESTS_VERIFIED \
 		-e GOPATH=/go \
-		-e DOCKER_INTEGRATION_TESTS_VERIFIED=true \
 		--privileged \
 		--mount "type=bind,source=$(PWD)/$(OUTPUT)/frozen,target=/docker-frozen-images" \
 		--mount "type=bind,source=$(PWD),target=$(PWD),ro" \
