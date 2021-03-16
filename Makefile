@@ -22,6 +22,10 @@ ifdef CACHE_TO
 _cache_to := --cache-to="$(CACHE_TO)"
 endif
 
+ifndef NO_OUTPUT
+_output := --output="$(OUTPUT)"
+endif
+
 .PHONY: $(PROJECTS)
 $(PROJECTS): # make (project name) VERSION=<project version> DISTRO=<distro>
 	@if [ -z "$(VERSION)" ]; then \
@@ -29,7 +33,7 @@ $(PROJECTS): # make (project name) VERSION=<project version> DISTRO=<distro>
 		VERSION="$${dirs[-1]}"; \
 	fi; \
 	f="$(@)/$${VERSION}/Dockerfile.$(DISTRO)"; \
-	docker buildx build $(_cache_from) $(_cache_to) --progress=$(PROGRESS) --build-arg TEST_FILTER --output="$(OUTPUT)" -f "$${f}" "$(@)/$${VERSION}"
+	docker buildx build $(_cache_from) $(_cache_to) --progress=$(PROGRESS) --build-arg TEST_FILTER $(_output) -f "$${f}" "$(@)/$${VERSION}"
 
 test-shell:
 	docker run -it --rm -v /var/lib/docker --tmpfs /run -v /var/lib/containerd --privileged -v $(pwd):/opt/test -w /opt/test $(subst -,:,$(DISTRO))

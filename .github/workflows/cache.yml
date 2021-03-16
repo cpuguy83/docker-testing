@@ -1,0 +1,60 @@
+
+name: Cache Builder
+on:
+  workflow_dispatch:
+jobs:
+  artifacts-cache:
+    name: Build Cache
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-20.04", "ubuntu-18.04"]
+        engine: ["20.10"]
+        containerd: ["1.4"]
+        runc: ["1.0"]
+        cli: ["20.10", "19.03"]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup buildx instance
+        uses: docker/setup-buildx-action@v1
+        with:
+          use: true
+      - name: Login to GHCR
+        run: echo ${{ secrets.CR_PAT }} | docker login https://ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Build
+        env:
+          NO_OUTPUT: 1
+        run: |
+          set -e -x
+
+          engine_tag="engine-$(echo ${{matrix.os}}${{matrix.engine}} | sha256sum | awk '{{ print $1 }}')"
+          cli_tag="cli-$(echo ${{matrix.os}}${{matrix.cli}} | sha256sum | awk '{{ print $1 }}')"
+          containerd_tag="containerd-$(echo ${{matrix.os}}${{matrix.containerd}} | sha256sum | awk '{{ print $1 }}')"
+          runc_tag="runc-$(echo ${{matrix.os}}${{matrix.runc}} | sha256sum | awk '{{ print $1 }}')"
+
+          make engine VERSION="${{ matrix.engine }}" CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${engine_tag}" CACHE_TO="ghcr.io/${{ github.repository }}/cache:${engine_tag}"
+          make cli VERSION="${{ matrix.cli }}" CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${cli_tag}" CACHE_TO="ghcr.io/${{ github.repository }}/cache:${cli_tag}"
+          make containerd VERSION="${{ matrix.containerd }}" CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${containerd_tag}" CACHE_TO="ghcr.io/${{ github.repository }}/cache:${containerd_tag}"
+          make runc VERSION="${{ matrix.runc }}" CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${runc_tag}" CACHE_TO="ghcr.io/${{ github.repository }}/cache:${runc_tag}"
+  runner-cache:
+    name: Build Cache
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-20.04", "ubuntu-18.04"]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup buildx instance
+        uses: docker/setup-buildx-action@v1
+        with:
+          use: true
+      - name: Login to GHCR
+        run: echo ${{ secrets.CR_PAT }} | docker login https://ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Build
+        env:
+          APT_MIRROR: http://azure.archive.ubuntu.com/ubuntu
+          CACHE_FROM: ghcr.io/${{github.repository}}/${{matrix.os}}:latest
+          CACHE_TO: ghcr.io/${{github.repository}}/${{matrix.os}}:latest
+        run: docker buildx build --cache-from "${CACHE_FROM}" --cache-to "${CACHE_TO}" -< Dockerfile.${{ matrix.os }}
