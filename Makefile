@@ -14,26 +14,58 @@ endif
 
 DISTRO ?= ubuntu-18.04
 
-ifdef CACHE_FROM
-_cache_from := --cache-from="$(CACHE_FROM)"
-endif
-
-ifdef CACHE_TO
-_cache_to := --cache-to="$(CACHE_TO)"
-endif
-
 ifndef NO_OUTPUT
 _output := --output="$(OUTPUT)"
 endif
 
+# functions used to get the correctly cased variable names that are referenced
+PROJECT_VERSION = $(shell echo '$@' |  tr '[:lower:]' '[:upper:]')_VERSION
+PROJECT_CACHE_FROM = $(shell echo '$@' |  tr '[:lower:]' '[:upper:]')_CACHE_FROM
+PROJECT_CACHE_TO = $(shell echo '$@' |  tr '[:lower:]' '[:upper:]')_CACHE_TO
+
+# function calls to get cache from/to lines for docker build
+_cache_from = $(shell \
+	if [ -n "$(CACHE_FROM)" ]; then \
+		echo --cache-from $(CACHE_FROM); \
+		exit 0; \
+	fi; \
+	_tmp_cache_from="$($(call PROJECT_CACHE_FROM))"; \
+	if [ -n "$${_tmp_cache_from}" ]; then \
+		echo --cache-from $${_tmp_cache_from}; \
+		exit 0; \
+	fi; \
+)
+_cache_to = $(shell \
+	if [ -n "$(CACHE_TO)" ]; then \
+		echo --cache-to $(CACHE_TO); \
+		exit 0; \
+	fi; \
+	_tmp_cache_to="$($(call PROJECT_CACHE_TO))"; \
+	if [ -n "$${_tmp_cache_to}" ]; then \
+		echo --cache-to $${_tmp_cache_to}; \
+		exit 0; \
+	fi; \
+)
+
+# function call to determine what version to build against
+get_version = $(shell \
+	if [ -n "$(VERSION)" ]; then \
+		echo $(VERSION); \
+		exit 0; \
+	fi; \
+	if [ -n "$($(call PROJECT_VERSION))" ]; then \
+		echo $($(call PROJECT_VERSION)); \
+		exit 0; \
+	fi; \
+	dirs=($$(ls $(@))); \
+	echo $${dirs[-1]}; \
+)
+
 .PHONY: $(PROJECTS)
 $(PROJECTS): # make (project name) VERSION=<project version> DISTRO=<distro>
-	@if [ -z "$(VERSION)" ]; then \
-		dirs=($(shell ls $(@))); \
-		VERSION="$${dirs[-1]}"; \
-	fi; \
+	VERSION="$(call get_version)"; \
 	f="$(@)/$${VERSION}/Dockerfile.$(DISTRO)"; \
-	docker buildx build $(_cache_from) $(_cache_to) --progress=$(PROGRESS) --build-arg TEST_FILTER $(_output) -f "$${f}" "$(@)/$${VERSION}"
+	docker buildx build $(call _cache_from) $(call _cache_to) --progress=$(PROGRESS) --build-arg TEST_FILTER $(_output) -f "$${f}" "$(@)/$${VERSION}"
 
 test-shell:
 	docker run -it --rm -v /var/lib/docker --tmpfs /run -v /var/lib/containerd --privileged -v $(pwd):/opt/test -w /opt/test $(subst -,:,$(DISTRO))

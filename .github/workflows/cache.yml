@@ -25,6 +25,11 @@ jobs:
       - name: Build
         env:
           NO_OUTPUT: 1
+          DISTRO: ${{matrix.os}}
+          ENGINE_VERSION: ${{matrix.engine}}
+          CLI_VERSION: ${{matrix.cli}}
+          RUNC_VERSION: ${{matrix.runc}}
+          CONTAINERD_VERSION: ${{matrix.containerd}}
         run: |
           set -e -x
 
@@ -33,10 +38,16 @@ jobs:
           containerd_tag="containerd-$(echo ${{matrix.os}}${{matrix.containerd}} | sha256sum | awk '{{ print $1 }}')"
           runc_tag="runc-$(echo ${{matrix.os}}${{matrix.runc}} | sha256sum | awk '{{ print $1 }}')"
 
-          make engine VERSION="${{ matrix.engine }}" CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${engine_tag}" CACHE_TO="ghcr.io/${{ github.repository }}/cache:${engine_tag}"
-          make cli VERSION="${{ matrix.cli }}" CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${cli_tag}" CACHE_TO="ghcr.io/${{ github.repository }}/cache:${cli_tag}"
-          make containerd VERSION="${{ matrix.containerd }}" CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${containerd_tag}" CACHE_TO="ghcr.io/${{ github.repository }}/cache:${containerd_tag}"
-          make runc VERSION="${{ matrix.runc }}" CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${runc_tag}" CACHE_TO="ghcr.io/${{ github.repository }}/cache:${runc_tag}"
+          export ENGINE_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${engine_tag}"
+          export ENGINE_CACHE_TO="${ENGINE_CACHE_FROM}"
+          export CLI_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${cli_tag}"
+          export CLI_CACHE_TO="${CLI_CACHE_FROM}"
+          export CONTAINERD_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${containerd_tag}"
+          export CONTAINERD_CACHE_TO="${CONTAINERD_CACHE_FROM}"
+          export RUNC_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${runc_tag}"
+          export RUNC_CACHE_TO="${RUNC_CACHE_FROM}"
+
+          make -j 4 engine cli containerd runc
   runner-cache:
     name: Build Cache
     runs-on: ${{ matrix.os }}
