@@ -15,7 +15,7 @@ jobs:
       matrix:
         os: ["ubuntu-20.04", "ubuntu-18.04"]
         engine: ["20.10"]
-        containerd: ["1.4"]
+        containerd: ["1.4", "1.5"]
         runc: ["1.0"]
         cli: ["20.10", "19.03"]
     steps:

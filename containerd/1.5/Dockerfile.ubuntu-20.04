@@ -1,4 +1,4 @@
-ARG GO_VERSION=1.13.15
+ARG GO_VERSION=1.15.6
 ARG GO_IMAGE=golang:${GO_VERSION}
 
 FROM --platform=${BUILDPLATFORM} ${GO_IMAGE} AS go
@@ -16,9 +16,9 @@ RUN apt-get update && apt-get install -y  \
 	pkg-config
 WORKDIR /go/src/github.com/containerd/containerd
 ARG CONTAINERD_REPO=https://github.com/containerd/containerd.git
-RUN git clone --branch=release/1.4 --depth=1 ${CONTAINERD_REPO} .
-# v1.4.4
-ARG CONTAINERD_COMMIT=0dea191709319db5a9949112448dfc325f7d8621
+RUN git clone --branch=master --depth=1 ${CONTAINERD_REPO} .
+# v1.5-beta.4
+ARG CONTAINERD_COMMIT=f201b78b9065f167071bf472a9708b3921c3d5d1
 RUN if [ -n "${CONTAINERD_COMMIT}" ]; then git fetch origin "${CONTAINERD_COMMIT}" && git checkout "${CONTAINERD_COMMIT}"; fi
 RUN	--mount=from=go,src=/usr/local/go,target=/usr/local/go \
 	PATH="/usr/local/go/bin:${PATH}" GOPATH=/go make binaries

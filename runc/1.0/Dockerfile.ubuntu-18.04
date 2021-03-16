@@ -10,8 +10,11 @@ RUN apt-get update && apt-get install -y \
 	make \
 	pkg-config
 WORKDIR /go/src/github.com/opencontainers/runc
-ARG REPO=https://github.com/opencontainers/runc.git
-RUN git clone --depth=1 ${REPO} .
+ARG RUNC_REPO=https://github.com/opencontainers/runc.git
+RUN git clone --depth=1 ${RUNC_REPO} .
+# v1.0.0-rc93
+ARG RUNC_COMMIT=12644e614e25b05da6fd08a38ffa0cfe1903fdec
+RUN if [ -n "${RUNC_COMMIT}" ]; then git fetch origin "${RUNC_COMMIT}" && git checkout "${RUNC_COMMIT}"; fi
 RUN \
 	--mount=from=go,src=/usr/local/go,target=/usr/local/go \
 	PATH="/usr/local/go/bin:${PATH}" make runc BUILDTAGS='seccomp apparmor selinux'

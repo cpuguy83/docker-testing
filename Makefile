@@ -18,10 +18,11 @@ ifndef NO_OUTPUT
 _output := --output="$(OUTPUT)"
 endif
 
-# functions used to get the correctly cased variable names that are referenced
-PROJECT_VERSION = $(shell echo '$@' |  tr '[:lower:]' '[:upper:]')_VERSION
-PROJECT_CACHE_FROM = $(shell echo '$@' |  tr '[:lower:]' '[:upper:]')_CACHE_FROM
-PROJECT_CACHE_TO = $(shell echo '$@' |  tr '[:lower:]' '[:upper:]')_CACHE_TO
+# Used by the $(PROJECTS) target to get the value of a project specific var, e.g. RUNC_VERSION
+#
+# Use: `$(call project_var_val,VERSION)` to get the value of the var <MAKETARGET>_VERSION
+project_var_val = $($(project_var,$(1)))
+project_var = $(shell echo '$@' |  tr '[:lower:]' '[:upper:]')_$(1)
 
 # function calls to get cache from/to lines for docker build
 _cache_from = $(shell \
@@ -29,7 +30,7 @@ _cache_from = $(shell \
 		echo --cache-from $(CACHE_FROM); \
 		exit 0; \
 	fi; \
-	_tmp_cache_from="$($(call PROJECT_CACHE_FROM))"; \
+	_tmp_cache_from="$(call project_var_val,CACHE_FROM)"; \
 	if [ -n "$${_tmp_cache_from}" ]; then \
 		echo --cache-from $${_tmp_cache_from}; \
 		exit 0; \
@@ -40,7 +41,7 @@ _cache_to = $(shell \
 		echo --cache-to $(CACHE_TO); \
 		exit 0; \
 	fi; \
-	_tmp_cache_to="$($(call PROJECT_CACHE_TO))"; \
+	_tmp_cache_to="$(call project_var_val,CACHE_TO)"; \
 	if [ -n "$${_tmp_cache_to}" ]; then \
 		echo --cache-to $${_tmp_cache_to}; \
 		exit 0; \
@@ -53,19 +54,26 @@ get_version = $(shell \
 		echo $(VERSION); \
 		exit 0; \
 	fi; \
-	if [ -n "$($(call PROJECT_VERSION))" ]; then \
-		echo $($(call PROJECT_VERSION)); \
+	_tmp_version=$(call project_var_val,VERSION); \
+	if [ -n "$${_tmp_version}" ]; then \
+		echo "$${_tmp_version}"; \
 		exit 0; \
 	fi; \
 	dirs=($$(ls $(@))); \
 	echo $${dirs[-1]}; \
 )
 
+BUILD_ARGS := \
+	--build-arg APT_MIRROR
+
+engine: BUILD_ARGS += --build-arg TEST_FILTER
+
 .PHONY: $(PROJECTS)
-$(PROJECTS): # make (project name) VERSION=<project version> DISTRO=<distro>
+$(PROJECTS): BUILD_ARGS += --build-arg $(call project_var,COMMIT) --build-arg $(call project_var,REPO)
+$(PROJECTS): # make (project name) VERSION=<project version> DISTRO=<distro>, prefix (non-DISTRO) variables with the project name you are setting if you want to build multiple at once
 	VERSION="$(call get_version)"; \
 	f="$(@)/$${VERSION}/Dockerfile.$(DISTRO)"; \
-	docker buildx build $(call _cache_from) $(call _cache_to) --progress=$(PROGRESS) --build-arg TEST_FILTER $(_output) -f "$${f}" "$(@)/$${VERSION}"
+	docker buildx build $(call _cache_from) $(call _cache_to) $(BUILD_ARGS) --progress=$(PROGRESS) $(_output) -f "$${f}" "$(@)/$${VERSION}"
 
 test-shell:
 	docker run -it --rm -v /var/lib/docker --tmpfs /run -v /var/lib/containerd --privileged -v $(pwd):/opt/test -w /opt/test $(subst -,:,$(DISTRO))
@@ -80,15 +88,6 @@ clean:
 $(OUTPUT)/$(DISTRO)/imageid: Dockerfile.$(DISTRO)
 	mkdir -p $(dir $@)
 	DOCKER_BUILDKIT=1 docker build $(_cache_from) --build-arg APT_MIRROR --iidfile="$(@)" -< ./Dockerfile.$(DISTRO)
-
-export TEST_FILTER
-
-$(OUTPUT)/bin/docker: cli
-$(OUTPUT)/bin/dockerd: engine
-$(OUTPUT)/src/github.com/docker/docker: engine
-
-$(OUTPUT)/bin/containerd: containerd
-$(OUTPUT)/bin/runc: runc
 
 test: $(OUTPUT)/$(DISTRO)/imageid
 	[ -t 0 ] && withTty="--tty"; \
