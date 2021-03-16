@@ -56,7 +56,7 @@ jobs:
         name: os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }}
         path: |
           out/tests/**
-          !out/tests/**/root
+          !out/tests/test-integration/**/root
         retention-days: 1
     - name: Publish Test Results
       uses: EnricoMi/publish-unit-test-result-action@v1
