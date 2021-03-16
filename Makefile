@@ -21,7 +21,7 @@ endif
 # Used by the $(PROJECTS) target to get the value of a project specific var, e.g. RUNC_VERSION
 #
 # Use: `$(call project_var_val,VERSION)` to get the value of the var <MAKETARGET>_VERSION
-project_var_val = $($(project_var,$(1)))
+project_var_val = $($(call project_var,$(1)))
 project_var = $(shell echo '$@' |  tr '[:lower:]' '[:upper:]')_$(1)
 
 # function calls to get cache from/to lines for docker build
