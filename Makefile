@@ -5,6 +5,9 @@ export OUTPUT := out
 
 export APT_MIRROR
 export TEST_FILTER
+export TEST_FLAGS
+export TEST_SKIP_INTEGRATION_CLI
+export TEST_SKIP_INTEGRATION
 
 PROJECTS := engine runc containerd cli
 PROGRESS := auto
@@ -101,6 +104,9 @@ test: $(OUTPUT)/$(DISTRO)/imageid
 		$${withTty} \
 		--init \
 		-e TEST_FILTER \
+		-e TEST_FLAGS \
+		-e TEST_SKIP_INTEGRATION_CLI \
+		-e TEST_SKIP_INTEGRATION \
 		-e GOCACHE="$(PWD)/$(OUTPUT)/gobuildcache" \
 		-e DOCKER_GITCOMMIT="NOBODYCARES" \
 		-e DOCKER_INTEGRATION_TESTS_VERIFIED \
@@ -112,7 +118,7 @@ test: $(OUTPUT)/$(DISTRO)/imageid
 		--mount "type=bind,source=$(PWD)/$(OUTPUT)/src,target=/go/src" \
 		-w "$(PWD)" \
 		"$$(cat $(<))" sh -xec '\
-			trap "chown -R $(shell id -u):$(shell id -g) $(PWD)/$(OUTPUT)" EXIT; \
+			trap "chown -R $(shell id -u):$(shell id -g) $(PWD)/$(OUTPUT)/tests" EXIT; \
 			rm -rf $(PWD)/$(OUTPUT)/tests; \
 			mkdir -p $(PWD)/$(OUTPUT)/tests; \
 			mkdir -p /go/src/github.com/docker/docker/bundles; \
