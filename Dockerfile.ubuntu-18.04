@@ -13,6 +13,7 @@ RUN \
 	apt-get update && apt-get install -y  \
 		apparmor \
 		btrfs-progs \
+		ca-certificates \
 		gcc \
 		iptables \
 		libseccomp2 \
