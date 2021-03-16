@@ -16,6 +16,7 @@ RUN \
 		btrfs-progs \
 		ca-certificates \
 		gcc \
+		iproute2 \
 		iptables \
 		libseccomp2 \
 		lvm2 \
