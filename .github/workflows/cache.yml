@@ -63,8 +63,8 @@ jobs:
           set -e -x
 
           tag=${{matrix.project}}-$(echo ${{matrix.os}}${{matrix.version}} | sha256sum | awk '{{ print $1 }}')
-          CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${tag}"
-          CACHE_TO="${CACHE_FROM}"
+          export CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${tag}"
+          export CACHE_TO="${CACHE_FROM}"
           make -j 4 ${{matrix.project}}
   runner-cache:
     name: Build Cache
