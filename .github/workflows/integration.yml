@@ -82,6 +82,7 @@ jobs:
         path: |
           out/tests/**
           !out/tests/test-integration/**/root/*
+          !out/tests/**/*.sock
         retention-days: 1
     - name: Publish Test Results
       uses: EnricoMi/publish-unit-test-result-action@v1
