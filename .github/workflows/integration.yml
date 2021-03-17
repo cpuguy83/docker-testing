@@ -17,7 +17,7 @@ jobs:
         engine: ["20.10"]
         containerd: ["1.4", "1.5"]
         runc: ["1.0"]
-        cli: ["20.10", "19.03"]
+        cli: ["20.10", "19.03", ""]
     steps:
     - uses: actions/checkout@v2
     - name: Login to GHCR
@@ -42,14 +42,26 @@ jobs:
         export CONTAINERD_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${containerd_tag}"
         export RUNC_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${runc_tag}"
 
-        make -j 4 engine cli containerd runc
+        if [ -z "${CLI_VERSION}" ]; then
+          # The test suite requires a docker binary or it errors outs, so we'll build it
+          # But the intention of empty CLI_VERSION is to skip CLI tests
+          export CLI_VERSION=20.10
+        fi
+
+        make -j 4 engine containerd runc cli
     - name: Test
       env:
         DOCKER_INTEGRATION_TESTS_VERIFIED: true
         APT_MIRROR: http://azure.archive.ubuntu.com/ubuntu
         CACHE_FROM: ghcr.io/${{github.repository}}/${{matrix.os}}:latest
         TEST_FILTER: ${{ github.event.inputs.testFilter }}
-      run: make test DISTRO=${{matrix.os}}
+      run: |
+        if [ -n "${{matrix.cli}}" ]; then
+          export TEST_SKIP_INTEGRATION=1
+        else
+          export TEST_SKIP_INTEGRATION_CLI=1
+        fi
+        make test DISTRO=${{matrix.os}}
     - uses: actions/upload-artifact@v2
       if: failure() || cancelled()
       with:
