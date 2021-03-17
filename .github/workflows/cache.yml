@@ -9,11 +9,43 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu-20.04", "ubuntu-18.04"]
-        engine: ["20.10"]
-        containerd: ["1.4", "1.5"]
-        runc: ["1.0"]
-        cli: ["20.10", "19.03"]
+        include:
+          - os: ubuntu-20.04
+            project: runc
+            version: "1.0"
+          - os: ubuntu-20.04
+            project: containerd
+            version: "1.4"
+          - os: ubuntu-20.04
+            project: containerd
+            version: "1.5"
+          - os: ubuntu-20.04
+            project: engine
+            version: "20.10"
+          - os: ubuntu-20.04
+            project: cli
+            version: "20.10"
+          - os: ubuntu-20.04
+            project: cli
+            version: "19.03"
+          - os: ubuntu-18.04
+            project: runc
+            version: "1.0"
+          - os: ubuntu-18.04
+            project: containerd
+            version: "1.4"
+          - os: ubuntu-18.04
+            project: containerd
+            version: "1.5"
+          - os: ubuntu-18.04
+            project: engine
+            version: "20.10"
+          - os: ubuntu-18.04
+            project: cli
+            version: "20.10"
+          - os: ubuntu-18.04
+            project: cli
+            version: "19.03"
     steps:
       - uses: actions/checkout@v2
       - name: Setup buildx instance
@@ -25,29 +57,15 @@ jobs:
       - name: Build
         env:
           NO_OUTPUT: 1
+          VERSION: ${{matrix.version}}
           DISTRO: ${{matrix.os}}
-          ENGINE_VERSION: ${{matrix.engine}}
-          CLI_VERSION: ${{matrix.cli}}
-          RUNC_VERSION: ${{matrix.runc}}
-          CONTAINERD_VERSION: ${{matrix.containerd}}
         run: |
           set -e -x
 
-          engine_tag="engine-$(echo ${{matrix.os}}${{matrix.engine}} | sha256sum | awk '{{ print $1 }}')"
-          cli_tag="cli-$(echo ${{matrix.os}}${{matrix.cli}} | sha256sum | awk '{{ print $1 }}')"
-          containerd_tag="containerd-$(echo ${{matrix.os}}${{matrix.containerd}} | sha256sum | awk '{{ print $1 }}')"
-          runc_tag="runc-$(echo ${{matrix.os}}${{matrix.runc}} | sha256sum | awk '{{ print $1 }}')"
-
-          export ENGINE_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${engine_tag}"
-          export ENGINE_CACHE_TO="${ENGINE_CACHE_FROM}"
-          export CLI_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${cli_tag}"
-          export CLI_CACHE_TO="${CLI_CACHE_FROM}"
-          export CONTAINERD_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${containerd_tag}"
-          export CONTAINERD_CACHE_TO="${CONTAINERD_CACHE_FROM}"
-          export RUNC_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${runc_tag}"
-          export RUNC_CACHE_TO="${RUNC_CACHE_FROM}"
-
-          make -j 4 engine cli containerd runc
+          tag=${{matrix.project}}-$(echo ${{matrix.os}}${{matrix.version}} | sha256sum | awk '{{ print $1 }}')
+          CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${tag}"
+          CACHE_TO="${CACHE_FROM}"
+          make -j 4 ${{matrix.project}}
   runner-cache:
     name: Build Cache
     runs-on: ${{ matrix.os }}
