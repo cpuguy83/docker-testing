@@ -8,7 +8,6 @@ on:
 
 jobs:
   integration-linux:
-    name: Integration Tests
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -18,6 +17,7 @@ jobs:
         containerd: ["1.4", "1.5"]
         runc: ["1.0"]
         cli: ["20.10", "19.03", ""]
+    name: os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }}
     steps:
     - uses: actions/checkout@v2
     - name: Login to GHCR
