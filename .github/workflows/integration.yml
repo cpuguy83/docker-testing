@@ -17,6 +17,15 @@ jobs:
         containerd: ["1.4", "1.5"]
         runc: ["1.0"]
         cli: ["20.10", "19.03", ""]
+        include:
+          - cli: "20.10"
+            suite: DockerDaemonSuite|DockerExternalVolumeSuite|DockerPluginSuite|DockerSuite|DockerSwarmSuite
+          - cli: "20.10"
+            suite: DockerHubPullSuite|DockerNetworkSuite|DockerRegistryAuthHtpasswdSuite|DockerRegistryAuthTokenSuite|DockerRegistrySuite|DockerSchema1RegistrySuite
+          - cli: "19.03"
+            suite: DockerDaemonSuite|DockerExternalVolumeSuite|DockerPluginSuite|DockerSuite|DockerSwarmSuite
+          - cli: "19.03"
+            suite: DockerHubPullSuite|DockerNetworkSuite|DockerRegistryAuthHtpasswdSuite|DockerRegistryAuthTokenSuite|DockerRegistrySuite|DockerSchema1RegistrySuite
     name: os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }}
     steps:
     - uses: actions/checkout@v2
@@ -42,10 +51,9 @@ jobs:
         export CONTAINERD_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${containerd_tag}"
         export RUNC_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${runc_tag}"
 
-        if [ -z "${CLI_VERSION}" ]; then
-          # The test suite requires a docker binary or it errors outs, so we'll build it
-          # But the intention of empty CLI_VERSION is to skip CLI tests
-          export CLI_VERSION=20.10
+        if [ -z "CLI_VERSION" ]; then
+          # Tests need the CLI even though we will not be using the CLI suite here
+          export CLI_VERSION="20.10"
         fi
 
         make -j 4 engine containerd runc cli
@@ -56,11 +64,13 @@ jobs:
         CACHE_FROM: ghcr.io/${{github.repository}}/${{matrix.os}}:latest
         TEST_FILTER: ${{ github.event.inputs.testFilter }}
       run: |
-        if [ -n "${{matrix.cli}}" ]; then
-          export TEST_SKIP_INTEGRATION=1
-        else
+        if [ -z "${{matrix.cli}}" ]; then
           export TEST_SKIP_INTEGRATION_CLI=1
+        else
+          export TEST_SKIP_INTEGRATION=1
+          export TESTFLAGS="-test.run Test(${{matrix.suite}})"
         fi
+
         make test DISTRO=${{matrix.os}}
     - name: Cleanup
       if: failure() || cancelled()

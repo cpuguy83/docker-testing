@@ -5,9 +5,18 @@ export OUTPUT := out
 
 export APT_MIRROR
 export TEST_FILTER
-export TEST_FLAGS
+
+ifdef TESTFLAGS
+export TESTFLAGS
+endif
+
+ifdef TEST_SKIP_INTEGRATION_CLI
 export TEST_SKIP_INTEGRATION_CLI
+endif
+
+ifdef TEST_SKIP_INTEGRATION
 export TEST_SKIP_INTEGRATION
+endif
 
 PROJECTS := engine runc containerd cli
 PROGRESS := auto
@@ -104,7 +113,7 @@ test: $(OUTPUT)/$(DISTRO)/imageid
 		$${withTty} \
 		--init \
 		-e TEST_FILTER \
-		-e TEST_FLAGS \
+		-e TESTFLAGS \
 		-e TEST_SKIP_INTEGRATION_CLI \
 		-e TEST_SKIP_INTEGRATION \
 		-e GOCACHE="$(PWD)/$(OUTPUT)/gobuildcache" \
