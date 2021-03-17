@@ -62,13 +62,15 @@ jobs:
           export TEST_SKIP_INTEGRATION_CLI=1
         fi
         make test DISTRO=${{matrix.os}}
+    - name: Cleanup
+      run: sudo chown -R $(id -u):$(id -g) out
     - uses: actions/upload-artifact@v2
       if: failure() || cancelled()
       with:
         name: os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }}
         path: |
           out/tests/**
-          !out/tests/test-integration/**/root
+          !out/tests/test-integration/**/root/*
         retention-days: 1
     - name: Publish Test Results
       uses: EnricoMi/publish-unit-test-result-action@v1
