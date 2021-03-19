@@ -26,7 +26,7 @@ jobs:
             suite: DockerDaemonSuite|DockerExternalVolumeSuite|DockerPluginSuite|DockerSuite|DockerSwarmSuite
           - cli: "19.03"
             suite: DockerHubPullSuite|DockerNetworkSuite|DockerRegistryAuthHtpasswdSuite|DockerRegistryAuthTokenSuite|DockerRegistrySuite|DockerSchema1RegistrySuite
-    name: os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }}
+    name: os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }} ${{matrix.suite}}
     steps:
     - uses: actions/checkout@v2
     - uses: actions/checkout@v2
@@ -85,13 +85,18 @@ jobs:
     - name: Cleanup
       if: failure() || cancelled()
       run: sudo chown -R $(id -u):$(id -g) out
+    - name: Generate artifact name
+      id: generate-artifact-name
+      if: always()
+      run: |
+        echo "::set-output name=name::os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }} $(echo '${{matrix.suite}}' | sed 's,|,_,g')"
     - uses: actions/upload-artifact@v2
       if: always()
       with:
-        name: os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }}
+        name: ${{ steps.generate-artifact-name.outputs.name }}
         path: |
-          out/tests/**
-          !out/tests/test-integration/**/root/*
+          out/tests
+          !out/tests/test-integration/**/root
           !out/tests/**/*.sock
         retention-days: 10
   publish:
