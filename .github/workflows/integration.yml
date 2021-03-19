@@ -86,14 +86,14 @@ jobs:
       if: failure() || cancelled()
       run: sudo chown -R $(id -u):$(id -g) out
     - uses: actions/upload-artifact@v2
-      if: failure() || cancelled()
+      if: always()
       with:
         name: os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }}
         path: |
           out/tests/**
           !out/tests/test-integration/**/root/*
           !out/tests/**/*.sock
-        retention-days: 1
+        retention-days: 10
   publish:
     runs-on: ubuntu-20.04
     name: Publish Results
