@@ -120,7 +120,9 @@ test: $(OUTPUT)/$(DISTRO)/imageid
 		-e DOCKER_GITCOMMIT="NOBODYCARES" \
 		-e DOCKER_INTEGRATION_TESTS_VERIFIED \
 		-e GOPATH=/go \
+		-e DOCKER_GRAPHDRIVER \
 		--privileged \
+		-v /var/lib/docker \
 		--mount "type=bind,source=$(PWD)/$(OUTPUT)/frozen,target=/docker-frozen-images" \
 		--mount "type=bind,source=$(PWD),target=$(PWD),ro" \
 		--mount "type=bind,source=$(PWD)/$(OUTPUT),target=$(PWD)/$(OUTPUT)" \
