@@ -16,7 +16,7 @@ jobs:
         engine: ["20.10", "master"]
         containerd: ["1.4", "1.5"]
         runc: ["1.0"]
-        cli: ["20.10", "19.03", ""]
+        cli: ["20.10", "19.03", "master", ""]
         include:
           - cli: "20.10"
             suite: DockerDaemonSuite|DockerExternalVolumeSuite|DockerPluginSuite|DockerSuite|DockerSwarmSuite
@@ -95,9 +95,9 @@ jobs:
       with:
         name: ${{ steps.generate-artifact-name.outputs.name }}
         path: |
-          out/tests
-          !out/tests/test-integration/**/root
+          !out/tests/**/root
           !out/tests/**/*.sock
+          out/tests/**/*.xml
         retention-days: 10
   publish:
     runs-on: ubuntu-20.04
