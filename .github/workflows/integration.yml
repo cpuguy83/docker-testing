@@ -89,15 +89,16 @@ jobs:
       id: generate-artifact-name
       if: always()
       run: |
-        echo "::set-output name=name::os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }} $(echo '${{matrix.suite}}' | sed 's,|,_,g')"
+        echo "::set-output name=name::TestResults os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }} $(echo '${{matrix.suite}}' | sed 's,|,_,g')"
     - uses: actions/upload-artifact@v2
       if: always()
       with:
         name: ${{ steps.generate-artifact-name.outputs.name }}
         path: |
-          !out/tests/**/root
-          !out/tests/**/*.sock
-          out/tests/**/*.xml
+          !out/tests/test-integration/**/root
+          !out/tests/test-integration/**/*.sock
+          out/tests/test-integration/**/*.xml
+          out/tests/test-integration/*.xml
         retention-days: 10
   publish:
     runs-on: ubuntu-20.04
