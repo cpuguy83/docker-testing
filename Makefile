@@ -121,19 +121,14 @@ test: $(OUTPUT)/$(DISTRO)/imageid
 		-e DOCKER_INTEGRATION_TESTS_VERIFIED \
 		-e GOPATH=/go \
 		-e DOCKER_GRAPHDRIVER \
+		-e USER="$(shell id -u)" \
+		-e GROUP="$(shell id -g)" \
+		-e OUTDIR="$(PWD)/$(OUTPUT)" \
 		--privileged \
 		-v /var/lib/docker \
+		--tmpfs /run \
 		--mount "type=bind,source=$(PWD)/$(OUTPUT)/frozen,target=/docker-frozen-images" \
-		--mount "type=bind,source=$(PWD),target=$(PWD),ro" \
-		--mount "type=bind,source=$(PWD)/$(OUTPUT),target=$(PWD)/$(OUTPUT)" \
+		--mount "type=bind,source=$(PWD),target=$(PWD)" \
 		--mount "type=bind,source=$(PWD)/$(OUTPUT)/src,target=/go/src" \
 		-w "$(PWD)" \
-		"$$(cat $(<))" sh -xec '\
-			trap "chown -R $(shell id -u):$(shell id -g) $(PWD)/$(OUTPUT)/tests" EXIT; \
-			rm -rf $(PWD)/$(OUTPUT)/tests; \
-			mkdir -p $(PWD)/$(OUTPUT)/tests; \
-			mkdir -p /go/src/github.com/docker/docker/bundles; \
-			mount --bind $(PWD)/$(OUTPUT)/tests /go/src/github.com/docker/docker/bundles; \
-			cd /go/src/github.com/docker/docker; \
-			PATH="$(PWD)/$(OUTPUT)/bin:$${PATH}" hack/make.sh test-integration; \
-		'
+		"$$(cat $(<))" "$(PWD)/run.sh"

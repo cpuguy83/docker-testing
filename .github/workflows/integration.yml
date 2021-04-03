@@ -34,11 +34,23 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: actions/checkout@v2
-      if: ${{ matrix.engine == 'master' }}
+      if: ${{ matrix.version == 'master' }} && ${{ matrix.project == 'engine' }}
       with:
         repository: moby/moby
         fetch-depth: 1
-        path: moby-src
+        path: engine-src
+    - uses: actions/checkout@v2
+      if: ${{ matrix.version == 'master' }} && ${{ matrix.project == 'cli' }}
+      with:
+        repository: docker/cli
+        fetch-depth: 1
+        path: cli-src
+    - uses: actions/checkout@v2
+      if: ${{ matrix.version == 'master' }} && ${{ matrix.project == 'runc' }}
+      with:
+        repository: opencontainers/runc
+        fetch-depth: 1
+        path: runc-src
     - name: Login to GHCR
       run: echo ${{ secrets.CR_PAT }} | docker login https://ghcr.io -u ${{ github.actor }} --password-stdin
     - name: Build all the things
@@ -67,7 +79,13 @@ jobs:
         fi
 
         if [ "${ENGINE_VERSION}" = "master" ]; then
-          export ENGINE_COMMIT="$(git -C ./moby-src rev-parse HEAD)"
+          export ENGINE_COMMIT="$(git -C ./engine-src rev-parse HEAD)"
+        fi
+        if [ "${CLI_VERSION}" = "master" ]; then
+          export CLI_COMMIT="$(git -C ./cli-src rev-parse HEAD)"
+        fi
+        if [ "${RUNC_VERSION}" = "master" ]; then
+          export RUNC_VERSION="$(git -C ./runc-src rev-parse HEAD)"
         fi
 
         make -j 4 engine containerd runc cli
@@ -88,21 +106,26 @@ jobs:
         make test DISTRO=${{matrix.os}}
     - name: Cleanup
       if: failure() || cancelled()
-      run: sudo chown -R $(id -u):$(id -g) out
+      run: |
+        sudo chown -R $(id -u):$(id -g) out
+        for i in out/tests/test-integration/*; do
+          [ -d "${i}" ] || continue
+          sudo find  "${i}" -maxdepth 2 -name root | tee | sudo xargs rm -rf
+        done
     - name: Generate artifact name
       id: generate-artifact-name
       if: always()
       run: |
-        echo "::set-output name=name::TestResults os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }} $(echo '${{matrix.suite}}' | sed 's,|,_,g')"
+        echo "::set-output name=name::os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }} $(echo '${{matrix.suite}}' | sed 's,|,_,g')"
     - uses: actions/upload-artifact@v2
       if: always()
       with:
         name: ${{ steps.generate-artifact-name.outputs.name }}
         path: |
-          !out/tests/test-integration/**/root
-          !out/tests/test-integration/**/*.sock
-          out/tests/test-integration/**/*.xml
-          out/tests/test-integration/*.xml
+          !out/tests/test-integration/*/d*/root
+          !out/tests/test-integration/*/d*/*.sock
+          !out/tests/test-integration/*/*.sock
+          out/tests/**
         retention-days: 10
   publish:
     runs-on: ubuntu-20.04
