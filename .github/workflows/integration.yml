@@ -85,7 +85,7 @@ jobs:
           export CLI_COMMIT="$(git -C ./cli-src rev-parse HEAD)"
         fi
         if [ "${RUNC_VERSION}" = "master" ]; then
-          export RUNC_VERSION="$(git -C ./runc-src rev-parse HEAD)"
+          export RUNC_COMMIT="$(git -C ./runc-src rev-parse HEAD)"
         fi
 
         make -j 4 engine containerd runc cli
