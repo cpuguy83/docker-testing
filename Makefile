@@ -98,7 +98,7 @@ clean:
 	rm -rf out
 
 $(OUTPUT)/$(DISTRO)/imageid: Dockerfile.$(DISTRO)
-	mkdir -p $(dir $@)
+	mkdir -p $(dir $@); \
 	DOCKER_BUILDKIT=1 docker build $(_cache_from) --build-arg APT_MIRROR --iidfile="$(@)" -< ./Dockerfile.$(DISTRO)
 
 ifdef DOCKER_INTEGRATION_TESTS_VERIFIED

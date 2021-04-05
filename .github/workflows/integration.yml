@@ -104,14 +104,6 @@ jobs:
         fi
 
         make test DISTRO=${{matrix.os}}
-    - name: Cleanup
-      if: failure() || cancelled()
-      run: |
-        sudo chown -R $(id -u):$(id -g) out
-        for i in out/tests/test-integration/*; do
-          [ -d "${i}" ] || continue
-          sudo find  "${i}" -maxdepth 2 -name root | tee | sudo xargs rm -rf
-        done
     - name: Generate artifact name
       id: generate-artifact-name
       if: always()
@@ -122,10 +114,10 @@ jobs:
       with:
         name: ${{ steps.generate-artifact-name.outputs.name }}
         path: |
-          !out/tests/test-integration/*/d*/root
-          !out/tests/test-integration/*/d*/*.sock
-          !out/tests/test-integration/*/*.sock
           out/tests/**
+          !out/tests/test-integration/**/root
+          !out/tests/test-integration/**/*.sock
+          !out/tests/test-integration/*/*.sock
         retention-days: 10
   publish:
     runs-on: ubuntu-20.04
