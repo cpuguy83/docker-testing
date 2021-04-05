@@ -2,7 +2,7 @@
 
 set -e -o xtrace
 
-: ${VERSION:=dev}
+: ${VERSION:=21.0.0-dev}
 
 : ${GOPATH:=~/go}
 TINI_COMMIT="$(. ${GOPATH}/src/github.com/docker/docker/hack/dockerfile/install/tini.installer; echo ${TINI_COMMIT})"

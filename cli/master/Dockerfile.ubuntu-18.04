@@ -15,6 +15,7 @@ RUN git clone --branch=master --depth=1 ${CLI_REPO} .
 ARG CLI_COMMIT
 RUN if [ -n "${CLI_COMMIT}" ]; then git fetch origin "${CLI_COMMIT}" && git checkout "${CLI_COMMIT}"; fi
 ENV DISABLE_WARN_OUTSIDE_CONTAINER=1
+ENV VERSION=21.0.0-dev
 RUN	--mount=from=go,src=/usr/local/go,target=/usr/local/go \
 	PATH="/usr/local/go/bin:${PATH}" GOPATH=/go make dynbinary
 
