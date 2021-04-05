@@ -20,17 +20,95 @@ jobs:
         engine: ["20.10", "master"]
         containerd: ["1.4", "1.5"]
         runc: ["1.0", "master"]
-        cli: ["20.10", "19.03", "master", ""]
-        include:
-          - cli: "20.10"
-            suite: DockerDaemonSuite|DockerExternalVolumeSuite|DockerPluginSuite|DockerSuite|DockerSwarmSuite
-          - cli: "20.10"
-            suite: DockerHubPullSuite|DockerNetworkSuite|DockerRegistryAuthHtpasswdSuite|DockerRegistryAuthTokenSuite|DockerRegistrySuite|DockerSchema1RegistrySuite
-          - cli: "19.03"
-            suite: DockerDaemonSuite|DockerExternalVolumeSuite|DockerPluginSuite|DockerSuite|DockerSwarmSuite
-          - cli: "19.03"
-            suite: DockerHubPullSuite|DockerNetworkSuite|DockerRegistryAuthHtpasswdSuite|DockerRegistryAuthTokenSuite|DockerRegistrySuite|DockerSchema1RegistrySuite
+        cli: ["20.10"]
     name: os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }} ${{matrix.suite}}
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/checkout@v2
+      if: ${{ matrix.engine == 'master' }}
+      with:
+        repository: moby/moby
+        fetch-depth: 1
+        path: engine-src
+    - uses: actions/checkout@v2
+      if: ${{ matrix.runc == 'master' }}
+      with:
+        repository: opencontainers/runc
+        fetch-depth: 1
+        path: runc-src
+    - name: Login to GHCR
+      run: echo ${{ secrets.CR_PAT }} | docker login https://ghcr.io -u ${{ github.actor }} --password-stdin
+    - name: Build all the things
+      env:
+        DISTRO: ${{matrix.os}}
+        ENGINE_VERSION: ${{matrix.engine}}
+        CLI_VERSION: ${{matrix.cli}}
+        RUNC_VERSION: ${{matrix.runc}}
+        CONTAINERD_VERSION: ${{matrix.containerd}}
+      run: |
+        set -e -x
+
+        engine_tag="engine-$(echo ${{matrix.os}}${{matrix.engine}} | sha256sum | awk '{{ print $1 }}')"
+        cli_tag="cli-$(echo ${{matrix.os}}${{matrix.cli}} | sha256sum | awk '{{ print $1 }}')"
+        containerd_tag="containerd-$(echo ${{matrix.os}}${{matrix.containerd}} | sha256sum | awk '{{ print $1 }}')"
+        runc_tag="runc-$(echo ${{matrix.os}}${{matrix.runc}} | sha256sum | awk '{{ print $1 }}')"
+
+        export ENGINE_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${engine_tag}"
+        export CLI_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${cli_tag}"
+        export CONTAINERD_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${containerd_tag}"
+        export RUNC_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${runc_tag}"
+
+        if [ -z "CLI_VERSION" ]; then
+          # Tests need the CLI even though we will not be using the CLI suite here
+          export CLI_VERSION="20.10"
+        fi
+
+        if [ "${ENGINE_VERSION}" = "master" ]; then
+          export ENGINE_COMMIT="$(git -C ./engine-src rev-parse HEAD)"
+        fi
+        if [ "${RUNC_VERSION}" = "master" ]; then
+          export RUNC_COMMIT="$(git -C ./runc-src rev-parse HEAD)"
+        fi
+
+        make -j 4 engine containerd runc cli
+    - name: Test
+      env:
+        DOCKER_INTEGRATION_TESTS_VERIFIED: true
+        APT_MIRROR: http://azure.archive.ubuntu.com/ubuntu
+        CACHE_FROM: ghcr.io/${{github.repository}}/${{matrix.os}}:latest
+        TEST_FILTER: ${{ github.event.inputs.testFilter }}
+        TEST_SKIP_INTEGRATION_CLI: "1"
+      run:  make test DISTRO=${{matrix.os}}
+    - name: Generate artifact name
+      id: generate-artifact-name
+      if: always()
+      run: |
+        echo "::set-output name=name::os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }} integration"
+    - uses: actions/upload-artifact@v2
+      if: always()
+      with:
+        name: ${{ steps.generate-artifact-name.outputs.name }}
+        path: |
+          out/tests/**
+          !out/tests/test-integration/**/root
+          !out/tests/test-integration/**/*.sock
+          !out/tests/test-integration/*/*.sock
+        retention-days: 10
+  integration-cli-linux:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["${{ github.event.inputs.os }}"]
+        engine: ["20.10", "master"]
+        containerd: ["1.4", "1.5"]
+        runc: ["1.0", "master"]
+        cli: ["20.10", "19.03", "master"]
+        suite:
+        - DockerSuite
+        - DockerDaemonSuite
+        - DockerExternalVolumeSuite|DockerPluginSuite|DockerSwarmSuite|DockerHubPullSuite|DockerNetworkSuite|DockerRegistryAuthHtpasswdSuite|DockerRegistryAuthTokenSuite|DockerRegistrySuite|DockerSchema1RegistrySuite
+    name: os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }} cli-${{matrix.suite}}
     steps:
     - uses: actions/checkout@v2
     - uses: actions/checkout@v2
@@ -95,15 +173,8 @@ jobs:
         APT_MIRROR: http://azure.archive.ubuntu.com/ubuntu
         CACHE_FROM: ghcr.io/${{github.repository}}/${{matrix.os}}:latest
         TEST_FILTER: ${{ github.event.inputs.testFilter }}
-      run: |
-        if [ -z "${{matrix.cli}}" ]; then
-          export TEST_SKIP_INTEGRATION_CLI=1
-        else
-          export TEST_SKIP_INTEGRATION=1
-          export TESTFLAGS="-test.run Test(${{matrix.suite}})"
-        fi
-
-        make test DISTRO=${{matrix.os}}
+        TEST_SKIP_INTEGRATION: "1"
+      run: make test DISTRO=${{matrix.os}} TESTFLAGS="-test.run Test(${{matrix.suite}})"
     - name: Generate artifact name
       id: generate-artifact-name
       if: always()
@@ -122,7 +193,7 @@ jobs:
   publish:
     runs-on: ubuntu-20.04
     name: Publish Results
-    needs: integration-linux
+    needs: ["integration-linux", "integration-cli-linux" ]
     if: always()
     steps:
     - name: Download Artifacts
