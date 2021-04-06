@@ -22,7 +22,10 @@ on:
       cliVersion:
         description: Only run matrix with a specific cli version
         required: false
-
+      graphDriver:
+        description: Set the graph driver for the test daemon to use
+        required: false
+        default: overlay2
 
 jobs:
   generate-matrix:
@@ -112,6 +115,7 @@ jobs:
         CACHE_FROM: ghcr.io/${{github.repository}}/${{matrix.os}}:latest
         TEST_FILTER: ${{ github.event.inputs.testFilter }}
         TEST_SKIP_INTEGRATION_CLI: "1"
+        DOCKER_GRAPHDRIVER: ${{ github.event.inputs.graphDriver }}
       run:  make test DISTRO=${{matrix.os}}
     - name: Generate artifact name
       id: generate-artifact-name
@@ -200,6 +204,7 @@ jobs:
         CACHE_FROM: ghcr.io/${{github.repository}}/${{matrix.os}}:latest
         TEST_FILTER: ${{ github.event.inputs.testFilter }}
         TEST_SKIP_INTEGRATION: "1"
+        DOCKER_GRAPHDRIVER: ${{ github.event.inputs.graphDriver }}
       run: make test DISTRO=${{matrix.os}} TESTFLAGS="-test.run Test(${{matrix.suite}})"
     - name: Generate artifact name
       id: generate-artifact-name
