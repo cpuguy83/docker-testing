@@ -82,6 +82,7 @@ jobs:
         CLI_VERSION: ${{matrix.cli}}
         RUNC_VERSION: ${{matrix.runc}}
         CONTAINERD_VERSION: ${{matrix.containerd}}
+        APT_MIRROR: http://azure.archive.ubuntu.com/ubuntu
       run: |
         set -e -x
 
@@ -109,6 +110,7 @@ jobs:
 
         make -j 4 engine containerd runc cli
     - name: Test
+      timeout-minutes: 120
       env:
         DOCKER_INTEGRATION_TESTS_VERIFIED: true
         APT_MIRROR: http://azure.archive.ubuntu.com/ubuntu
@@ -117,6 +119,18 @@ jobs:
         TEST_SKIP_INTEGRATION_CLI: "1"
         DOCKER_GRAPHDRIVER: ${{ github.event.inputs.graphDriver }}
       run:  make test DISTRO=${{matrix.os}}
+    - name: Cleanup
+      if: always()
+      run: |
+          mounts=("$(mount | grep 'docker/docker/bundles' | awk '{ print $3 }')")
+          for i in ${mounts[@]}; do
+            sudo umount -r -l "${i}"
+          done
+          for i in out/tests/test-integration/*; do
+            [ -d "${i}" ] || continue
+            find  "${i}" -maxdepth 3 -name root | sudo xargs -I thefile rm -rf thefile
+          done
+          sudo chown -R "$(id -u):$(id -g)" "out/tests"
     - name: Generate artifact name
       id: generate-artifact-name
       if: always()
@@ -133,6 +147,7 @@ jobs:
           !out/tests/test-integration/*/*.sock
         retention-days: 10
   integration-cli-linux:
+    timeout-minutes: 120
     runs-on: ${{ matrix.os }}
     needs: generate-matrix
     strategy:
@@ -198,6 +213,7 @@ jobs:
 
         make -j 4 engine containerd runc cli
     - name: Test
+      timeout-minutes: 120
       env:
         DOCKER_INTEGRATION_TESTS_VERIFIED: true
         APT_MIRROR: http://azure.archive.ubuntu.com/ubuntu
@@ -206,6 +222,19 @@ jobs:
         TEST_SKIP_INTEGRATION: "1"
         DOCKER_GRAPHDRIVER: ${{ github.event.inputs.graphDriver }}
       run: make test DISTRO=${{matrix.os}} TESTFLAGS="-test.run Test(${{matrix.suite}})"
+    # Cleanup step can be needed if there was a problem with the run and the cleanup within the test setup code does not run
+    - name: Cleanup
+      if: always()
+      run: |
+          mounts=("$(mount | grep 'docker/docker/bundles' | awk '{ print $3 }')")
+          for i in ${mounts[@]}; do
+            sudo umount -r -l "${i}"
+          done
+          for i in out/tests/test-integration/*; do
+            [ -d "${i}" ] || continue
+            find  "${i}" -maxdepth 3 -name root | sudo xargs -I thefile rm -rf thefile
+          done
+          sudo chown -R "$(id -u):$(id -g)" "out/tests"
     - name: Generate artifact name
       id: generate-artifact-name
       if: always()

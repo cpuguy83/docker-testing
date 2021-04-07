@@ -124,6 +124,7 @@ test: $(OUTPUT)/$(DISTRO)/imageid
 		-e USER="$(shell id -u)" \
 		-e GROUP="$(shell id -g)" \
 		-e OUTDIR="$(PWD)/$(OUTPUT)" \
+		-e TIMEOUT \
 		--privileged \
 		-v /var/lib/docker \
 		--tmpfs /run \
@@ -131,4 +132,4 @@ test: $(OUTPUT)/$(DISTRO)/imageid
 		--mount "type=bind,source=$(PWD),target=$(PWD)" \
 		--mount "type=bind,source=$(PWD)/$(OUTPUT)/src,target=/go/src" \
 		-w "$(PWD)" \
-		"$$(cat $(<))" "$(PWD)/run.sh"
+		"$$(cat $(<))" "$(PWD)/run.sh" test

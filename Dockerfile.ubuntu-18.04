@@ -15,11 +15,13 @@ RUN \
 		btrfs-progs \
 		ca-certificates \
 		gcc \
+		git \
 		iproute2 \
 		iptables \
 		jq \
 		libseccomp2 \
 		lvm2 \
-		make
+		make \
+		net-tools
 COPY --from=go /usr/local/go /usr/local/go
 ENV PATH=/usr/local/go/bin:${PATH}
