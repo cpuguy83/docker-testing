@@ -7,8 +7,8 @@
 		"cli": ["20.10", "master"],
 		"suite": [
 			"DockerSuite",
-			"DockerDaemonSuite",
-			"DockerExternalVolumeSuite|DockerPluginSuite|DockerSwarmSuite|DockerHubPullSuite|DockerNetworkSuite|DockerRegistryAuthHtpasswdSuite|DockerRegistryAuthTokenSuite|DockerRegistrySuite|DockerSchema1RegistrySuite"
+			"DockerDaemonSuite|DockerSwarmSuite",
+			"DockerExternalVolumeSuite|DockerPluginSuite|DockerHubPullSuite|DockerNetworkSuite|DockerRegistryAuthHtpasswdSuite|DockerRegistryAuthTokenSuite|DockerRegistrySuite|DockerSchema1RegistrySuite"
 		]
 	},
 	"integration": {
