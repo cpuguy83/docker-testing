@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y  \
 	make
 WORKDIR /go/src/github.com/docker/cli
 ARG CLI_REPO=https://github.com/docker/cli.git
-RUN git clone --branch=20.10 --depth=1 ${CLI_REPO} .
+RUN git clone --depth=1 ${CLI_REPO} .
 # v20.10.5
 ARG CLI_COMMIT=55c4c88966a912ddb365e2d73a4969e700fc458f
 RUN if [ -n "${CLI_COMMIT}" ]; then git fetch origin "${CLI_COMMIT}" && git checkout "${CLI_COMMIT}"; fi

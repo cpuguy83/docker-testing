@@ -11,14 +11,15 @@ RUN apt-get update && apt-get install -y  \
 	make
 WORKDIR /go/src/github.com/docker/cli
 ARG CLI_REPO=https://github.com/docker/cli.git
-RUN git clone --branch=20.10 --depth=1 ${CLI_REPO} .
+RUN git clone --depth=1 ${CLI_REPO} .
 # v20.10.5
 ARG CLI_COMMIT
 RUN if [ -n "${CLI_COMMIT}" ]; then git fetch origin "${CLI_COMMIT}" && git checkout "${CLI_COMMIT}"; fi
 ENV DISABLE_WARN_OUTSIDE_CONTAINER=1
 ENV VERSION=21.0.0-dev
+ENV GO_LINKMODE=dynamic
 RUN	--mount=from=go,src=/usr/local/go,target=/usr/local/go \
-	PATH="/usr/local/go/bin:${PATH}" GOPATH=/go make dynbinary
+	PATH="/usr/local/go/bin:${PATH}" GOPATH=/go scripts/build/binary
 
 FROM scratch as binary
 COPY --from=build /go/src/github.com/docker/cli/build/docker /bin/

@@ -20,6 +20,7 @@ RUN \
 		iproute2 \
 		iptables \
 		jq \
+		libltdl7 \
 		libseccomp2 \
 		lvm2 \
 		make \
