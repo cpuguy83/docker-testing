@@ -24,7 +24,7 @@ RUN \
 		pkg-config
 WORKDIR /go/src/github.com/docker/docker
 ARG ENGINE_REPO=https://github.com/moby/moby.git
-RUN git clone --branch=master --depth=1 "${ENGINE_REPO}" .
+RUN git clone --depth=1 "${ENGINE_REPO}" .
 ARG ENGINE_COMMIT
 RUN if [ -n "${ENGINE_COMMIT}" ]; then git fetch origin "${ENGINE_COMMIT}" && git checkout "${ENGINE_COMMIT}"; fi
 ARG TARGETARCH

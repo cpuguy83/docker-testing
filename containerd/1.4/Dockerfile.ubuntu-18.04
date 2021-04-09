@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y  \
 	pkg-config
 WORKDIR /go/src/github.com/containerd/containerd
 ARG CONTAINERD_REPO=https://github.com/containerd/containerd.git
-RUN git clone --branch=release/1.4 --depth=1 ${CONTAINERD_REPO} .
+RUN git clone --depth=1 ${CONTAINERD_REPO} .
 # v1.4.4
 ARG CONTAINERD_COMMIT=0dea191709319db5a9949112448dfc325f7d8621
 RUN if [ -n "${CONTAINERD_COMMIT}" ]; then git fetch origin "${CONTAINERD_COMMIT}" && git checkout "${CONTAINERD_COMMIT}"; fi
