@@ -18,7 +18,7 @@ WORKDIR /go/src/github.com/containerd/containerd
 ARG CONTAINERD_REPO=https://github.com/containerd/containerd.git
 RUN git clone --depth=1 ${CONTAINERD_REPO} .
 # v1.5-beta.4
-ARG CONTAINERD_COMMIT=f201b78b9065f167071bf472a9708b3921c3d5d1
+ARG CONTAINERD_COMMIT=6636e36182504789fe05f7127956bac01f6e0784
 RUN if [ -n "${CONTAINERD_COMMIT}" ]; then git fetch origin "${CONTAINERD_COMMIT}" && git checkout "${CONTAINERD_COMMIT}"; fi
 RUN	--mount=from=go,src=/usr/local/go,target=/usr/local/go \
 	PATH="/usr/local/go/bin:${PATH}" GOPATH=/go make binaries
