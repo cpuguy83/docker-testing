@@ -13,15 +13,19 @@ on:
       runcVersion:
         description: Only run matrix with a specific runc version
         required: false
+        default: "1.0"
       containerdVersion:
         description: Only run matrix with a specific containerd version
         required: false
+        default: "1.5"
       engineVersion:
         description: Only run matrix with a specific engine version
         required: false
+        default: "20.10"
       cliVersion:
         description: Only run matrix with a specific cli version
         required: false
+        default: "20.10"
       graphDriver:
         description: Set the graph driver for the test daemon to use
         required: false
@@ -62,17 +66,29 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: actions/checkout@v2
-      if: ${{ matrix.engine == 'master' }}
       with:
         repository: moby/moby
         fetch-depth: 1
         path: engine-src
+        ref: "${{ github.event.inputs.engineVersion }}"
     - uses: actions/checkout@v2
-      if: ${{ matrix.runc == 'master' }}
+      with:
+        repository: docker/cli
+        fetch-depth: 1
+        path: cli-src
+        ref: "${{ github.event.inputs.cliVersion }}"
+    - uses: actions/checkout@v2
       with:
         repository: opencontainers/runc
         fetch-depth: 1
         path: runc-src
+        ref: master # For now, always master, there is no release branch
+    - uses: actions/checkout@v2
+      with:
+        repository: containerd/containerd
+        fetch-depth: 1
+        path: containerd-src
+        ref: release/${{ github.event.inputs.containerdVersion }}
     - name: Login to GHCR
       run: echo ${{ secrets.CR_PAT }} | docker login https://ghcr.io -u ${{ github.actor }} --password-stdin
     - name: Build all the things
@@ -101,12 +117,10 @@ jobs:
           export CLI_VERSION="20.10"
         fi
 
-        if [ "${ENGINE_VERSION}" = "master" ]; then
-          export ENGINE_COMMIT="$(git -C ./engine-src rev-parse HEAD)"
-        fi
-        if [ "${RUNC_VERSION}" = "master" ]; then
-          export RUNC_COMMIT="$(git -C ./runc-src rev-parse HEAD)"
-        fi
+        export ENGINE_COMMIT="$(git -C ./engine-src rev-parse HEAD)"
+        export CLI_COMMIT="$(git -C ./cli-src rev-parse HEAD)"
+        export RUNC_COMMIT="$(git -C ./runc-src rev-parse HEAD)"
+        export CONTAINERD_COMMIT="$(git -C ./containerd-src rev-parse HEAD)"
 
         make -j 4 engine containerd runc cli
     - name: Test
@@ -157,23 +171,29 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: actions/checkout@v2
-      if: ${{ matrix.engine == 'master' }}
       with:
         repository: moby/moby
         fetch-depth: 1
         path: engine-src
+        ref: "${{ github.event.inputs.engineVersion }}"
     - uses: actions/checkout@v2
-      if: ${{ matrix.cli == 'master' }}
       with:
         repository: docker/cli
         fetch-depth: 1
         path: cli-src
+        ref: "${{ github.event.inputs.cliVersion }}"
     - uses: actions/checkout@v2
-      if: ${{ matrix.runc == 'master' }}
       with:
         repository: opencontainers/runc
         fetch-depth: 1
         path: runc-src
+        ref: master # For now, always master, there is no release branch
+    - uses: actions/checkout@v2
+      with:
+        repository: containerd/containerd
+        fetch-depth: 1
+        path: containerd-src
+        ref: release/${{ github.event.inputs.containerdVersion }}
     - name: Login to GHCR
       run: echo ${{ secrets.CR_PAT }} | docker login https://ghcr.io -u ${{ github.actor }} --password-stdin
     - name: Build all the things
@@ -197,19 +217,13 @@ jobs:
         export RUNC_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${runc_tag}"
 
         if [ -z "CLI_VERSION" ]; then
-          # Tests need the CLI even though we will not be using the CLI suite here
           export CLI_VERSION="20.10"
         fi
 
-        if [ "${ENGINE_VERSION}" = "master" ]; then
-          export ENGINE_COMMIT="$(git -C ./engine-src rev-parse HEAD)"
-        fi
-        if [ "${CLI_VERSION}" = "master" ]; then
-          export CLI_COMMIT="$(git -C ./cli-src rev-parse HEAD)"
-        fi
-        if [ "${RUNC_VERSION}" = "master" ]; then
-          export RUNC_COMMIT="$(git -C ./runc-src rev-parse HEAD)"
-        fi
+        export ENGINE_COMMIT="$(git -C ./engine-src rev-parse HEAD)"
+        export CLI_COMMIT="$(git -C ./cli-src rev-parse HEAD)"
+        export RUNC_COMMIT="$(git -C ./runc-src rev-parse HEAD)"
+        export CONTAINERD_COMMIT="$(git -C ./containerd-src rev-parse HEAD)"
 
         make -j 4 engine containerd runc cli
     - name: Test
