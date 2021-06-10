@@ -1,6 +1,6 @@
 {
-	"integration-cli": {
-		"os": ["${{ github.event.inputs.os }}"],
+	"integration-cli-linux": {
+		"os": ["${{ github.event.inputs.osLinux }}"],
 		"runc": ["1.0", "master"],
 		"containerd": ["1.4", "1.5"],
 		"engine": ["20.10", "master"],
@@ -11,10 +11,25 @@
 			"DockerExternalVolumeSuite|DockerPluginSuite|DockerHubPullSuite|DockerNetworkSuite|DockerRegistryAuthHtpasswdSuite|DockerRegistryAuthTokenSuite|DockerRegistrySuite|DockerSchema1RegistrySuite"
 		]
 	},
-	"integration": {
-		"os": ["${{ github.event.inputs.os }}"],
+	"integration-linux": {
+		"os": ["${{ github.event.inputs.osLinux }}"],
 		"runc": ["1.0", "master"],
 		"containerd": ["1.4", "1.5"],
+		"engine": ["20.10", "master"],
+		"cli": ["20.10"]
+	},
+	"integration-cli-windows": {
+		"os": ["${{ github.event.inputs.osWindows }}"],
+		"engine": ["20.10", "master"],
+		"cli": ["20.10", "master"],
+		"suite": [
+			"DockerSuite",
+			"DockerDaemonSuite|DockerSwarmSuite",
+			"DockerExternalVolumeSuite|DockerPluginSuite|DockerHubPullSuite|DockerNetworkSuite|DockerRegistryAuthHtpasswdSuite|DockerRegistryAuthTokenSuite|DockerRegistrySuite|DockerSchema1RegistrySuite"
+		]
+	},
+	"integration-windows": {
+		"os": ["${{ github.event.inputs.osWindows }}"],
 		"engine": ["20.10", "master"],
 		"cli": ["20.10"]
 	}

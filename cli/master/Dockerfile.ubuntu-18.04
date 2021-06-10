@@ -11,7 +11,6 @@ RUN apt-get update && apt-get install -y  \
 WORKDIR /go/src/github.com/docker/cli
 ARG CLI_REPO=https://github.com/docker/cli.git
 RUN git clone --branch=master --depth=1 ${CLI_REPO} .
-# v20.10.5
 ARG CLI_COMMIT
 RUN if [ -n "${CLI_COMMIT}" ]; then git fetch origin "${CLI_COMMIT}" && git checkout "${CLI_COMMIT}"; fi
 ENV DISABLE_WARN_OUTSIDE_CONTAINER=1

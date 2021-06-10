@@ -3,22 +3,29 @@ ARG GO_IMAGE=golang:${GO_VERSION}
 
 FROM --platform=${BUILDPLATFORM} ${GO_IMAGE} AS go
 
-FROM --platform=${BUILDPLATFORM} ubuntu:20.04 AS build
+FROM --platform=${BUILDPLATFORM} ubuntu:18.04 AS build
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y  \
+	binutils-mingw-w64 \
+	g++-mingw-w64-x86-64 \
 	gcc \
 	git \
 	make
 WORKDIR /go/src/github.com/docker/cli
 ARG CLI_REPO=https://github.com/docker/cli.git
 RUN git clone --depth=1 ${CLI_REPO} .
-ARG CLI_COMMIT
+# v20.10.7
+ARG CLI_COMMIT=f0df35096d5f5e6b559b42c7fde6c65a2909f7c5
 RUN if [ -n "${CLI_COMMIT}" ]; then git fetch origin "${CLI_COMMIT}" && git checkout "${CLI_COMMIT}"; fi
 ENV DISABLE_WARN_OUTSIDE_CONTAINER=1
-ENV VERSION=21.0.0-dev
-ENV GO_LINKMODE=dynamic
+ENV VERSION=20.10.7
+ENV CC=x86_64-w64-mingw32-gcc
+ENV GOOS=windows
+ENV CGO_ENABLED=1
+ENV PATH=/usr/local/go/bin:${PATH}
+ENV GOPATH=/go
 RUN	--mount=from=go,src=/usr/local/go,target=/usr/local/go \
-	PATH="/usr/local/go/bin:${PATH}" GOPATH=/go scripts/build/binary
+	go build -o docker.exe github.com/docker/cli/cmd/docker
 
 FROM scratch as binary
-COPY --from=build /go/src/github.com/docker/cli/build/docker /bin/
+COPY --from=build /go/src/github.com/docker/cli/docker.exe /bin/

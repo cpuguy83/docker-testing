@@ -6,6 +6,8 @@ FROM --platform=${BUILDPLATFORM} ${GO_IMAGE} AS go
 FROM --platform=${BUILDPLATFORM} ubuntu:20.04 AS build
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y  \
+	binutils-mingw-w64 \
+	g++-mingw-w64-x86-64 \
 	gcc \
 	git \
 	make
@@ -17,8 +19,12 @@ RUN if [ -n "${CLI_COMMIT}" ]; then git fetch origin "${CLI_COMMIT}" && git chec
 ENV DISABLE_WARN_OUTSIDE_CONTAINER=1
 ENV VERSION=21.0.0-dev
 ENV GO_LINKMODE=dynamic
+ENV CC=x86_64-w64-mingw32-gcc
+ENV GOOS=windows
+ENV WINDRES=
+ENV CGO_ENABLED=1
 RUN	--mount=from=go,src=/usr/local/go,target=/usr/local/go \
 	PATH="/usr/local/go/bin:${PATH}" GOPATH=/go scripts/build/binary
 
 FROM scratch as binary
-COPY --from=build /go/src/github.com/docker/cli/build/docker /bin/
+COPY --from=build /go/src/github.com/docker/cli/build/docker /bin/docker.exe

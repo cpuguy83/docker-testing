@@ -22,8 +22,14 @@ fi
 if [ -n "${CONTAINERD_VERSION}" ]; then
 	filter+=" | (..|.containerd?) = [\"${CONTAINERD_VERSION}\"]"
 fi
-if [ -n "${OS_VERSION}" ]; then
-	filter+=" | (..|.os?) = [\"${OS_VERSION}\"]"
+if [[ "$suite" =~ "windows" ]]; then
+	if [ -n "${OS_VERSION_WINDOWS}" ]; then
+		filter+=" | (..|.os?) = [\"${OS_VERSION_WINDOWS}\"]"
+	fi
+else
+	if [ -n "${OS_VERSION_LINUX}" ]; then
+		filter+=" | (..|.os?) = [\"${OS_VERSION_LINUX}\"]"
+	fi
 fi
 
 jq -c "${filter}" default-matrix.json

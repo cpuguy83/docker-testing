@@ -5,7 +5,7 @@ on:
 jobs:
   artifacts-cache:
     name: Build Cache
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -63,7 +63,13 @@ jobs:
             version: "19.03"
           - os: ubuntu-18.04
             project: cli
-            version: "master"
+            version: master
+          - os: windows-2019
+            project: cli
+            version: master
+          - os: windows-2019
+            project: cli
+            version: "20.10"
 
     steps:
       - uses: actions/checkout@v2
