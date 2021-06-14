@@ -18,16 +18,6 @@
 		"engine": ["20.10", "master"],
 		"cli": ["20.10"]
 	},
-	"integration-cli-windows": {
-		"os": ["${{ github.event.inputs.osWindows }}"],
-		"engine": ["20.10", "master"],
-		"cli": ["20.10", "master"],
-		"suite": [
-			"DockerSuite",
-			"DockerDaemonSuite|DockerSwarmSuite",
-			"DockerExternalVolumeSuite|DockerPluginSuite|DockerHubPullSuite|DockerNetworkSuite|DockerRegistryAuthHtpasswdSuite|DockerRegistryAuthTokenSuite|DockerRegistrySuite|DockerSchema1RegistrySuite"
-		]
-	},
 	"integration-windows": {
 		"os": ["${{ github.event.inputs.osWindows }}"],
 		"engine": ["20.10", "master"],

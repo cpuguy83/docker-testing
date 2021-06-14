@@ -44,6 +44,8 @@ jobs:
       integration-cli-matrix-linux: ${{ steps.set-matrix.outputs.integration-cli-linux }}
       integration-matrix-windows: ${{ steps.set-matrix.outputs.integration-windows }}
       integration-cli-matrix-windows: ${{ steps.set-matrix.outputs.integration-cli-windows }}
+      windows-2019-image: ${{ steps.set-matrix.outputs.windows-2019-image }}
+      windows-2019-tag: ${{ steps.set-matrix.outputs.windows-2019-tag }}
     steps:
     - uses: actions/checkout@v2
     - id: set-matrix
@@ -55,7 +57,7 @@ jobs:
         OS_VERSION_LINUX: "${{ github.event.inputs.osLinux }}"
         OS_VERSION_WINDOWS: "${{ github.event.inputs.osWindows }}"
       run: |
-        set -e -x
+        set -e
         matrix="$(./matrix.sh integration-linux)"
         jq . <<<"$matrix" # help debug
         echo "::set-output name=integration-linux::$matrix"
@@ -71,99 +73,53 @@ jobs:
         matrix="$(./matrix.sh integration-cli-windows)"
         jq . <<<"$matrix" # help debug
         echo "::set-output name=integration-cli-windows::$matrix"
-  integration-windows-build:
-    if: github.event.inputs.osWindows != 'skip'
-    name: Build os=${{ matrix.os }} engine=${{ matrix.engine }} cli=${{ matrix.cli }} ${{matrix.suite}}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-      matrix: ${{ fromJSON(needs.generate-matrix.outputs.integration-matrix-windows) }}
-    needs: generate-matrix
-    steps:
-    - uses: actions/checkout@v2
-    - uses: actions/checkout@v2
-      with:
-        repository: moby/moby
-        fetch-depth: 1
-        path: engine-src
-        ref: "${{ github.event.inputs.engineVersion }}"
-    - uses: actions/checkout@v2
-      with:
-        repository: docker/cli
-        fetch-depth: 1
-        path: cli-src
-        ref: "${{ github.event.inputs.cliVersion }}"
-    - name: Login to GHCR
-      run: echo ${{ secrets.CR_PAT }} | docker login https://ghcr.io -u ${{ github.actor }} --password-stdin
-    - name: Build all the things
-      env:
-        DISTRO: ${{matrix.os}}
-        ENGINE_VERSION: ${{matrix.engine}}
-        CLI_VERSION: ${{matrix.cli}}
-        APT_MIRROR: http://azure.archive.ubuntu.com/ubuntu
-      run: |
-        set -e -x
 
-        engine_tag="engine-$(echo ${{matrix.os}}${{matrix.engine}} | sha256sum | awk '{{ print $1 }}')"
-        cli_tag="cli-$(echo ${{matrix.os}}${{matrix.cli}} | sha256sum | awk '{{ print $1 }}')"
-
-        export ENGINE_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${engine_tag}"
-        export CLI_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${cli_tag}"
-
-        if [ -z "CLI_VERSION" ]; then
-          # Tests need the CLI even though we will not be using the CLI suite here
-          export CLI_VERSION="20.10"
-        fi
-
-        export ENGINE_COMMIT="$(git -C ./engine-src rev-parse HEAD)"
-        export CLI_COMMIT="$(git -C ./cli-src rev-parse HEAD)"
-
-        make -j 4 engine cli
-    - name: Generate artifact name
-      id: generate-artifact-name
-      if: always()
-      run: |
-        echo "::set-output name=name::os=${{ matrix.os }} engine=${{ matrix.engine }} integration-windows-bin"
-    - uses: actions/upload-artifact@v2
-      with:
-        name: ${{ steps.generate-artifact-name.outputs.name }}
-        path: |
-          out/**
+        case "$OS_VERSION_WINDOWS" in
+            "windows-2019")
+                set -x
+                echo "::set-output name=windows-2019-image::mcr.microsoft.com/windows/servercore"
+                echo "::set-output name=windows-2019-tag::ltsc2019"
+                ;;
+            *)
+                echo unknown windows version "$OS_VERSION_WINDOWS"
+                ;;
+        esac
   integration-windows:
     if: github.event.inputs.osWindows != 'skip'
     runs-on: ${{ matrix.os }}
-    name: os=${{ matrix.os }} engine=${{ matrix.engine }} cli=${{ matrix.cli }} ${{matrix.suite}}
+    name: os=${{ matrix.os }} engine=${{ matrix.engine }} cli=${{ matrix.cli }}
     needs:
     - generate-matrix
-    - integration-windows-build
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.generate-matrix.outputs.integration-matrix-windows) }}
     steps:
-    - name: Generate artifact name
-      id: generate-artifact-name
-      if: always()
-      run: |
-        echo "::set-output name=name::os=${{ matrix.os }} engine=${{ matrix.engine }} integration-windows-bin"
-    - name: Download Test bins
-      uses: actions/download-artifact@v2
+    - uses: actions/checkout@v2
       with:
-        path: out
-        name: ${{ steps.generate-artifact-name.outputs.name }}
+        repository: moby/moby
+        fetch-depth: 1
+        path: out/src/github.com/docker/docker
+        ref: "${{ github.event.inputs.engineVersion }}"
     - name: Test
       timeout-minutes: 120
       env:
         DOCKER_INTEGRATION_TESTS_VERIFIED: true
-        APT_MIRROR: http://azure.archive.ubuntu.com/ubuntu
-        CACHE_FROM: ghcr.io/${{github.repository}}/${{matrix.os}}:latest
         TEST_FILTER: ${{ github.event.inputs.testFilter }}
         TEST_SKIP_INTEGRATION_CLI: "1"
-        DOCKER_GRAPHDRIVER: ${{ github.event.inputs.graphDriver }}
+        SOURCES_DRIVE: 'd'
+        SOURCES_SUBDIR: a\docker-testing\docker-testing\out
+        TESTRUN_DRIVE: 'd'
+        TESTRUN_SUBDIR: 'CI'
+        WINDOWS_BASE_IMAGE: ${{ needs.generate-matrix.outputs.windows-2019-image }}
+        WINDOWS_BASE_IMAGE_TAG: ${{ needs.generate-matrix.outputs.windows-2019-tag }}
+        SKIP_UNIT_TESTS: '1'
+        SKIP_VALIDATION_TESTS: '1'
+        SKIP_ALL_CLEANUP: '1'
       working-directory: out/src/github.com/docker/docker
       run: |
         $ErrorActionPreference = 'Stop'
         Invoke-WebRequest https://github.com/moby/docker-ci-zap/blob/master/docker-ci-zap.exe?raw=true -OutFile C:/Windows/System32/docker-ci-zap.exe
-        ./hack/ci/windows.ps1 TestIntegration
+        ./hack/ci/windows.ps1
   integration-linux:
     if: github.event.inputs.osLinux != 'skip'
     runs-on: ${{ matrix.os }}
