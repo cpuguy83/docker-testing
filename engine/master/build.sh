@@ -1,31 +1,31 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 set -e -o xtrace
 
+export GO111MODULE=off
 : ${VERSION:=21.0.0-dev}
 
 : ${GOPATH:=~/go}
 TINI_COMMIT="$(. ${GOPATH}/src/github.com/docker/docker/hack/dockerfile/install/tini.installer; echo ${TINI_COMMIT})"
 
-: ${ENGINE_COMMIT:="$(git rev-parse HEAD || echo dev)"}
+: ${GITCOMMIT:="$(git rev-parse HEAD || echo dev)"}
 
 : ${BUILDTAGS:="journald apparmor seccomp"}
-: ${LDFLAGS:=" \
-	-X github.com/docker/docker/dockerversion.Version=${VERSION} \
-	-X github.com/docker/docker/dockerversion.GitCommit=${ENGINE_COMMIT} \
-	-X github.com/docker/docker/dockerversion.BuildTime=${BUILDTIME} \
-	-X github.com/docker/docker/dockerversion.IAmStatic=false \
-	-X github.com/docker/docker/dockerversion.PlatformName=${PLATFORM} \
-	-X github.com/docker/docker/dockerversion.ProductName=${PRODUCT} \
-	-X github.com/docker/docker/dockerversion.DefaultProductLicense=${DEFAULT_PRODUCT_LICENSE} \
-	-X github.com/docker/docker/dockerversion.InitCommitID=${TINI_COMMIT}
-"}
-: ${BUILDMODE:="pie"}
+: ${IAMSTATIC:="false"}
 
+GOOS="$(go env GOOS)"
+GOARCH="$(go env GOARCH)"
+
+if [ "$GOOS" = "windows" ]; then
+	ext=".exe"
+fi
+
+: ${BUILDMODE:="pie"}
+. hack/make/.go-autogen
 go build -o "${OUTPUT}/bin/dockerd" -tags "${BUILDTAGS}" -ldflags "${LDFLAGS}" -buildmode "${BUILDMODE}" ${EXTRA_BUILD_FLAGS} github.com/docker/docker/cmd/dockerd
+go build -o "${OUTPUT}"/bin/docker-proxy github.com/docker/docker/libnetwork/cmd/proxy
 
 export PREFIX="${OUTPUT}/bin/"
-hack/dockerfile/install/install.sh proxy
 hack/dockerfile/install/install.sh tini
 TEST_FILTER=${TEST_FILTER} hack/make.sh build-integration-test-binary
 hack/dockerfile/install/install.sh gotestsum # Testing dependency

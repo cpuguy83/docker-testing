@@ -103,7 +103,6 @@ jobs:
     - name: Test
       timeout-minutes: 120
       env:
-        DOCKER_INTEGRATION_TESTS_VERIFIED: true
         TEST_FILTER: ${{ github.event.inputs.testFilter }}
         TEST_SKIP_INTEGRATION_CLI: "1"
         SOURCES_DRIVE: 'd'
