@@ -74,6 +74,15 @@ jobs:
         jq . <<<"$matrix" # help debug
         echo "::set-output name=integration-cli-windows::$matrix"
 
+        case "$RUNC_VERSION" in
+          "master")
+            echo "::set-output name=runc-branch::master"
+            ;;
+          *)
+            echo "::set-output name=runc-branch::release/${RUNC_VERSION}"
+            ;;
+        esac
+
         case "$OS_VERSION_WINDOWS" in
             "windows-2019")
                 set -x
@@ -146,7 +155,7 @@ jobs:
         repository: opencontainers/runc
         fetch-depth: 1
         path: runc-src
-        ref: master # For now, always master, there is no release branch
+        ref: "${{ needs.generate-matrix.outputs.runc-branch }}"
     - uses: actions/checkout@v2
       with:
         repository: containerd/containerd

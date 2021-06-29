@@ -12,7 +12,6 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /go/src/github.com/opencontainers/runc
 ARG RUNC_REPO=https://github.com/opencontainers/runc.git
 RUN git clone --depth=1 ${RUNC_REPO} .
-# v1.0.0-rc93
 ARG RUNC_COMMIT
 RUN if [ -n "${RUNC_COMMIT}" ]; then git fetch origin "${RUNC_COMMIT}" && git checkout "${RUNC_COMMIT}"; fi
 RUN \
