@@ -13,84 +13,114 @@ jobs:
           - os: ubuntu-20.04
             project: runc
             version: "1.0"
+            ref: "release/1.0"
           - os: ubuntu-20.04
             project: runc
             version: "master"
+            ref: "master"
           - os: ubuntu-20.04
             project: containerd
             version: "1.4"
+            ref: "release/1.4"
           - os: ubuntu-20.04
             project: containerd
             version: "1.5"
+            ref: "release/1.5"
           - os: ubuntu-20.04
             project: engine
             version: "20.10"
+            ref: "20.10"
           - os: ubuntu-20.04
             project: engine
             version: master
+            ref: master
           - os: ubuntu-20.04
             project: cli
             version: "20.10"
+            ref: "20.10"
           - os: ubuntu-20.04
             project: cli
             version: "19.03"
+            ref: "19.03"
           - os: ubuntu-20.04
             project: cli
             version: "master"
+            ref: master
           - os: ubuntu-18.04
             project: runc
             version: "1.0"
+            ref: release/1.0
           - os: ubuntu-18.04
             project: runc
             version: "master"
+            ref: master
           - os: ubuntu-18.04
             project: containerd
             version: "1.4"
+            ref: release/1.4
           - os: ubuntu-18.04
             project: containerd
             version: "1.5"
+            ref: release/1.5
           - os: ubuntu-18.04
             project: engine
             version: "20.10"
+            ref: "20.10"
           - os: ubuntu-18.04
             project: engine
             version: master
+            ref: master
           - os: ubuntu-18.04
             project: cli
             version: "20.10"
+            ref: master
           - os: ubuntu-18.04
             project: cli
             version: "19.03"
+            ref: "19.03"
           - os: ubuntu-18.04
             project: cli
             version: master
+            ref: master
           - os: windows-2019
             project: cli
             version: master
+            ref: master
           - os: windows-2019
             project: cli
             version: "20.10"
+            ref: "20.10"
 
     steps:
       - uses: actions/checkout@v2
       - uses: actions/checkout@v2
-        if: ${{ matrix.version == 'master' }} && ${{ matrix.project == 'engine' }}
+        if: ${{ matrix.project == 'engine' }}
         with:
           repository: moby/moby
           fetch-depth: 1
           path: engine-src
+          ref: ${{ matrix.ref }}
       - uses: actions/checkout@v2
-        if: ${{ matrix.version == 'master' }} && ${{ matrix.project == 'cli' }}
+        if: ${{ matrix.project == 'cli' }}
         with:
           repository: docker/cli
           fetch-depth: 1
           path: cli-src
+          ref: ${{ matrix.ref }}
       - uses: actions/checkout@v2
-        if: ${{ matrix.version == 'master' }} && ${{ matrix.project == 'runc' }}
+        if: ${{ matrix.project == 'containerd' }}
+        with:
+          repository: containerd/containerd
+          fetch-depth: 1
+          path: containerd-src
+          ref: ${{ matrix.ref }}
+      - uses: actions/checkout@v2
+        if: ${{ matrix.project == 'runc' }}
         with:
           repository: opencontainers/runc
           fetch-depth: 1
           path: runc-src
+          ref: ${{ matrix.ref }}
       - name: Setup buildx instance
         uses: docker/setup-buildx-action@v1
         with:
@@ -109,9 +139,7 @@ jobs:
           export CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${tag}"
           export CACHE_TO="${CACHE_FROM}"
 
-          if [ "${VERSION}" = "master" ]; then
-            export $(echo ${{matrix.project}} | awk '{{ print toupper ($0) }}')_COMMIT="$(git -C ./${{matrix.project}}-src rev-parse HEAD)"
-          fi
+          export $(echo ${{matrix.project}} | awk '{{ print toupper ($0) }}')_COMMIT="$(git -C ./${{matrix.project}}-src rev-parse HEAD)"
 
           make -j 4 ${{matrix.project}}
   runner-cache:
