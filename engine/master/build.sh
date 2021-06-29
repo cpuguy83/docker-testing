@@ -23,7 +23,7 @@ fi
 : ${BUILDMODE:="pie"}
 . hack/make/.go-autogen
 go build -o "${OUTPUT}/bin/dockerd" -tags "${BUILDTAGS}" -ldflags "${LDFLAGS}" -buildmode "${BUILDMODE}" ${EXTRA_BUILD_FLAGS} github.com/docker/docker/cmd/dockerd
-go build -o "${OUTPUT}"/bin/docker-proxy github.com/docker/docker/libnetwork/cmd/proxy
+go build -o "${OUTPUT}"/bin/docker-proxy github.com/docker/docker/cmd/docker-proxy
 
 export PREFIX="${OUTPUT}/bin/"
 hack/dockerfile/install/install.sh tini
