@@ -79,7 +79,7 @@ jobs:
             echo "::set-output name=runc-branch::master"
             ;;
           *)
-            echo "::set-output name=runc-branch::release/${RUNC_VERSION}"
+            echo "::set-output name=runc-branch::release-${RUNC_VERSION}"
             ;;
         esac
 

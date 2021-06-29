@@ -13,7 +13,7 @@ jobs:
           - os: ubuntu-20.04
             project: runc
             version: "1.0"
-            ref: "release/1.0"
+            ref: "release-1.0"
           - os: ubuntu-20.04
             project: runc
             version: "master"
@@ -49,7 +49,7 @@ jobs:
           - os: ubuntu-18.04
             project: runc
             version: "1.0"
-            ref: release/1.0
+            ref: release-1.0
           - os: ubuntu-18.04
             project: runc
             version: "master"
@@ -73,7 +73,7 @@ jobs:
           - os: ubuntu-18.04
             project: cli
             version: "20.10"
-            ref: master
+            ref: "20.10"
           - os: ubuntu-18.04
             project: cli
             version: "19.03"
