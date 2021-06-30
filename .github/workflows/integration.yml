@@ -46,16 +46,70 @@ jobs:
       integration-cli-matrix-windows: ${{ steps.set-matrix.outputs.integration-cli-windows }}
       windows-2019-image: ${{ steps.set-matrix.outputs.windows-2019-image }}
       windows-2019-tag: ${{ steps.set-matrix.outputs.windows-2019-tag }}
+      runc-commit: "${{steps.set-vars.outputs.runc-commit}}"
+      runc-tag: "${{steps.set-vars.outputs.runc-tag}}"
+      containerd-commit: "${{steps.set-vars.outputs.containerd-commit}}"
+      containerd-tag: "${{steps.set-vars.outputs.containerd-tag}}"
+      engine-commit: "${{steps.set-vars.outputs.engine-commit}}"
+      engine-tag: "${{steps.set-vars.outputs.engine-tag}}"
+      cli-commit: "${{steps.set-vars.outputs.cli-commit}}"
+      cli-tag: "${{steps.set-vars.outputs.cli-tag}}"
+    env:
+      ENGINE_VERSION: "${{ github.event.inputs.engineVersion }}"
+      CONTAINERD_VERSION: "${{ github.event.inputs.containerdVersion }}"
+      RUNC_VERSION: "${{ github.event.inputs.runcVersion }}"
+      CLI_VERSION: "${{ github.event.inputs.cliVersion }}"
+      OS_VERSION_LINUX: "${{ github.event.inputs.osLinux }}"
+      OS_VERSION_WINDOWS: "${{ github.event.inputs.osWindows }}"
     steps:
+    - id: set-refs
+      run: |
+        set -e -x -o pipefail
+        case "$RUNC_VERSION" in
+          "master")
+            RUNC_BRANCH=master
+            ;;
+          *)
+            RUNC_BRANCH="release-${RUNC_VERSION}"
+            ;;
+        esac
+        echo "::set-output name=runc-branch::${RUNC_BRANCH}"
+
+        case "$CONTAINERD_VERSION" in
+          "master")
+            CONTAINERD_BRANCH=main
+            ;;
+          *)
+            CONTAINERD_BRANCH=release/${CONTAINERD_VERSION}
+            ;;
+        esac
+        echo "::set-output name=containerd-branch::${CONTAINERD_BRANCH}"
     - uses: actions/checkout@v2
+    - uses: actions/checkout@v2
+      with:
+        repository: moby/moby
+        fetch-depth: 1
+        path: engine-src
+        ref: "${{ github.event.inputs.engineVersion }}"
+    - uses: actions/checkout@v2
+      with:
+        repository: docker/cli
+        fetch-depth: 1
+        path: cli-src
+        ref: "${{ github.event.inputs.cliVersion }}"
+    - uses: actions/checkout@v2
+      with:
+        repository: opencontainers/runc
+        fetch-depth: 1
+        path: runc-src
+        ref: "${{ steps.set-refs.outputs.runc-branch }}"
+    - uses: actions/checkout@v2
+      with:
+        repository: containerd/containerd
+        fetch-depth: 1
+        path: containerd-src
+        ref: "${{ steps.set-refs.outputs.containerd-branch }}"
     - id: set-matrix
-      env:
-        ENGINE_VERSION: "${{ github.event.inputs.engineVersion }}"
-        CONTAINERD_VERSION: "${{ github.event.inputs.containerdVersion }}"
-        RUNC_VERSION: "${{ github.event.inputs.runcVersion }}"
-        CLI_VERSION: "${{ github.event.inputs.cliVersion }}"
-        OS_VERSION_LINUX: "${{ github.event.inputs.osLinux }}"
-        OS_VERSION_WINDOWS: "${{ github.event.inputs.osWindows }}"
       run: |
         set -e
         matrix="$(./matrix.sh integration-linux)"
@@ -73,16 +127,8 @@ jobs:
         matrix="$(./matrix.sh integration-cli-windows)"
         jq . <<<"$matrix" # help debug
         echo "::set-output name=integration-cli-windows::$matrix"
-
-        case "$RUNC_VERSION" in
-          "master")
-            echo "::set-output name=runc-branch::master"
-            ;;
-          *)
-            echo "::set-output name=runc-branch::release-${RUNC_VERSION}"
-            ;;
-        esac
-
+    - id: set-vars
+      run: |
         case "$OS_VERSION_WINDOWS" in
             "windows-2019")
                 set -x
@@ -93,6 +139,60 @@ jobs:
                 echo unknown windows version "$OS_VERSION_WINDOWS"
                 ;;
         esac
+
+        echo "::set-output name=engine-commit::$(git -C ./engine-src rev-parse HEAD)"
+        echo "::set-output name=engine-tag::engine-$(echo ${{ github.event.inputs.osLinux }}${ENGINE_VERSION} | sha256sum | awk '{ print $1 }')"
+
+        echo "::set-output name=cli-commit::$(git -C ./cli-src rev-parse HEAD)"
+        echo "::set-output name=cli-tag::cli-$(echo ${{ github.event.inputs.osLinux }}${CLI_VERSION} | sha256sum | awk '{ print $1 }')"
+
+        echo "::set-output name=runc-commit::$(git -C ./runc-src rev-parse HEAD)"
+        echo "::set-output name=runc-tag::runc-$(echo ${{ github.event.inputs.osLinux }}${RUNC_VERSION} | sha256sum | awk '{ print $1 }')"
+
+        echo "::set-output name=containerd-commit::$(git -C ./containerd-src rev-parse HEAD)"
+        echo "::set-output name=containerd-tag::containerd-$(echo ${{ github.event.inputs.osLinux }}${CONTAINERD_VERSION} | sha256sum | awk '{ print $1 }')"
+  cache:
+    if: github.event.inputs.osLinux != 'skip'
+    needs: generate-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project:
+        - engine
+        - runc
+        - cli
+        - containerd
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup buildx instance
+      uses: docker/setup-buildx-action@v1
+      with:
+        use: true
+    - name: Login to GHCR
+      run: echo ${{ secrets.CR_PAT }} | docker login https://ghcr.io -u ${{ github.actor }} --password-stdin
+    - run: |
+        set -e -x
+
+        export CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${${{matrix.project}}_tag}"
+        export CACHE_TO="${CACHE_FROM}"
+
+        make ${{ matrix.project }}
+      env:
+        APT_MIRROR: http://azure.archive.ubuntu.com/ubuntu
+        DISTRO: "${{ github.event.inputs.osLinux }}"
+        NO_OUTPUT: 1
+        ENGINE_COMMIT: ${{ needs.generate-matrix.outputs.engine-commit }}
+        ENGINE_VERSION: ${{ github.event.inputs.engineVersion }}
+        engine_tag: ${{ needs.generate-matrix.outputs.engine-tag }}
+        CLI_COMMIT: ${{ needs.generate-matrix.outputs.cli-commit }}
+        CLI_VERSION: ${{ github.event.inputs.cliVersion }}
+        cli_tag: ${{ needs.generate-matrix.outputs.cli-tag }}
+        CONTAINERD_COMMIT: ${{ needs.generate-matrix.outputs.containerd-commit }}
+        CONTAINERD_VERSION: ${{ github.event.inputs.containerdVersion }}
+        containerd_tag: ${{ needs.generate-matrix.outputs.containerd-tag }}
+        RUNC_COMMIT: ${{ needs.generate-matrix.outputs.runc-commit }}
+        RUNC_VERSION: ${{ github.event.inputs.runcVersion }}
+        runc_tag: ${{ needs.generate-matrix.outputs.runc-tag }}
   integration-windows:
     if: github.event.inputs.osWindows != 'skip'
     runs-on: ${{ matrix.os }}
@@ -131,71 +231,43 @@ jobs:
   integration-linux:
     if: github.event.inputs.osLinux != 'skip'
     runs-on: ${{ matrix.os }}
-    needs: generate-matrix
+    needs:
+    - generate-matrix
+    - cache
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.generate-matrix.outputs.integration-matrix-linux) }}
     name: os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }} ${{matrix.suite}}
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/checkout@v2
-      with:
-        repository: moby/moby
-        fetch-depth: 1
-        path: engine-src
-        ref: "${{ github.event.inputs.engineVersion }}"
-    - uses: actions/checkout@v2
-      with:
-        repository: docker/cli
-        fetch-depth: 1
-        path: cli-src
-        ref: "${{ github.event.inputs.cliVersion }}"
-    - uses: actions/checkout@v2
-      with:
-        repository: opencontainers/runc
-        fetch-depth: 1
-        path: runc-src
-        ref: "${{ needs.generate-matrix.outputs.runc-branch }}"
-    - uses: actions/checkout@v2
-      with:
-        repository: containerd/containerd
-        fetch-depth: 1
-        path: containerd-src
-        ref: release/${{ github.event.inputs.containerdVersion }}
     - name: Login to GHCR
       run: echo ${{ secrets.CR_PAT }} | docker login https://ghcr.io -u ${{ github.actor }} --password-stdin
     - name: Build all the things
       env:
         DISTRO: ${{matrix.os}}
         ENGINE_VERSION: ${{matrix.engine}}
+        ENGINE_COMMIT: "${{ needs.generate-matrix.outputs.engine-commit}}"
         CLI_VERSION: ${{matrix.cli}}
+        CLI_COMMIT: "${{ needs.generate-matrix.outputs.cli-commit}}"
         RUNC_VERSION: ${{matrix.runc}}
+        RUNC_COMMIT: "${{ needs.generate-matrix.outputs.runc-commit}}"
         CONTAINERD_VERSION: ${{matrix.containerd}}
+        CONTAINERD_COMMIT: "${{ needs.generate-matrix.outputs.containerd-commit}}"
         APT_MIRROR: http://azure.archive.ubuntu.com/ubuntu
       run: |
         set -e -x
 
-        engine_tag="engine-$(echo ${{matrix.os}}${{matrix.engine}} | sha256sum | awk '{{ print $1 }}')"
-        cli_tag="cli-$(echo ${{matrix.os}}${{matrix.cli}} | sha256sum | awk '{{ print $1 }}')"
-        containerd_tag="containerd-$(echo ${{matrix.os}}${{matrix.containerd}} | sha256sum | awk '{{ print $1 }}')"
-        runc_tag="runc-$(echo ${{matrix.os}}${{matrix.runc}} | sha256sum | awk '{{ print $1 }}')"
-
-        export ENGINE_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${engine_tag}"
-        export CLI_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${cli_tag}"
-        export CONTAINERD_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${containerd_tag}"
-        export RUNC_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${runc_tag}"
+        export ENGINE_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${{ needs.generate-matrix.outputs.engine-tag }}"
+        export CLI_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${{ needs.generate-matrix.outputs.cli-tag }}"
+        export CONTAINERD_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${{ needs.generate-matrix.outputs.containerd-tag }}"
+        export RUNC_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${{ needs.generate-matrix.outputs.runc-tag }}"
 
         if [ -z "CLI_VERSION" ]; then
           # Tests need the CLI even though we will not be using the CLI suite here
           export CLI_VERSION="20.10"
         fi
 
-        export ENGINE_COMMIT="$(git -C ./engine-src rev-parse HEAD)"
-        export CLI_COMMIT="$(git -C ./cli-src rev-parse HEAD)"
-        export RUNC_COMMIT="$(git -C ./runc-src rev-parse HEAD)"
-        export CONTAINERD_COMMIT="$(git -C ./containerd-src rev-parse HEAD)"
-
-        make -j 4 engine containerd runc cli
+        make engine containerd runc cli
     - name: Test
       timeout-minutes: 120
       env:
@@ -237,69 +309,41 @@ jobs:
     if: github.event.inputs.osLinux != 'skip'
     timeout-minutes: 120
     runs-on: ${{ matrix.os }}
-    needs: generate-matrix
+    needs:
+    - generate-matrix
+    - cache
     strategy:
       fail-fast: false
       matrix: ${{fromJSON(needs.generate-matrix.outputs.integration-cli-matrix-linux) }}
     name: os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }} cli-${{matrix.suite}}
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/checkout@v2
-      with:
-        repository: moby/moby
-        fetch-depth: 1
-        path: engine-src
-        ref: "${{ github.event.inputs.engineVersion }}"
-    - uses: actions/checkout@v2
-      with:
-        repository: docker/cli
-        fetch-depth: 1
-        path: cli-src
-        ref: "${{ github.event.inputs.cliVersion }}"
-    - uses: actions/checkout@v2
-      with:
-        repository: opencontainers/runc
-        fetch-depth: 1
-        path: runc-src
-        ref: master # For now, always master, there is no release branch
-    - uses: actions/checkout@v2
-      with:
-        repository: containerd/containerd
-        fetch-depth: 1
-        path: containerd-src
-        ref: release/${{ github.event.inputs.containerdVersion }}
     - name: Login to GHCR
       run: echo ${{ secrets.CR_PAT }} | docker login https://ghcr.io -u ${{ github.actor }} --password-stdin
     - name: Build all the things
       env:
         DISTRO: ${{matrix.os}}
         ENGINE_VERSION: ${{matrix.engine}}
+        ENGINE_COMMIT: "${{ needs.generate-matrix.outputs.engine-commit}}"
         CLI_VERSION: ${{matrix.cli}}
+        CLI_COMMIT: "${{ needs.generate-matrix.outputs.cli-commit}}"
         RUNC_VERSION: ${{matrix.runc}}
+        RUNC_COMMIT: "${{ needs.generate-matrix.outputs.runc-commit}}"
         CONTAINERD_VERSION: ${{matrix.containerd}}
+        CONTAINERD_COMMIT: "${{ needs.generate-matrix.outputs.containerd-commit}}"
       run: |
         set -e -x
 
-        engine_tag="engine-$(echo ${{matrix.os}}${{matrix.engine}} | sha256sum | awk '{{ print $1 }}')"
-        cli_tag="cli-$(echo ${{matrix.os}}${{matrix.cli}} | sha256sum | awk '{{ print $1 }}')"
-        containerd_tag="containerd-$(echo ${{matrix.os}}${{matrix.containerd}} | sha256sum | awk '{{ print $1 }}')"
-        runc_tag="runc-$(echo ${{matrix.os}}${{matrix.runc}} | sha256sum | awk '{{ print $1 }}')"
-
-        export ENGINE_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${engine_tag}"
-        export CLI_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${cli_tag}"
-        export CONTAINERD_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${containerd_tag}"
-        export RUNC_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${runc_tag}"
+        export ENGINE_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${{ needs.generate-matrix.outputs.engine-tag }}"
+        export CLI_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${{ needs.generate-matrix.outputs.cli-tag }}"
+        export CONTAINERD_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${{ needs.generate-matrix.outputs.containerd-tag }}"
+        export RUNC_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${{ needs.generate-matrix.outputs.runc-tag }}"
 
         if [ -z "CLI_VERSION" ]; then
           export CLI_VERSION="20.10"
         fi
 
-        export ENGINE_COMMIT="$(git -C ./engine-src rev-parse HEAD)"
-        export CLI_COMMIT="$(git -C ./cli-src rev-parse HEAD)"
-        export RUNC_COMMIT="$(git -C ./runc-src rev-parse HEAD)"
-        export CONTAINERD_COMMIT="$(git -C ./containerd-src rev-parse HEAD)"
-
-        make -j 4 engine containerd runc cli
+        make engine containerd runc cli
     - name: Test
       timeout-minutes: 120
       env:
