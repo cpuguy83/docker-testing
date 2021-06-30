@@ -47,13 +47,13 @@ jobs:
       windows-2019-image: ${{ steps.set-matrix.outputs.windows-2019-image }}
       windows-2019-tag: ${{ steps.set-matrix.outputs.windows-2019-tag }}
       runc-commit: "${{steps.set-vars.outputs.runc-commit}}"
-      runc-tag: "${{steps.set-vars.outputs.runc-tag}}"
+      runc-cache: "${{steps.set-vars.outputs.runc-cache}}"
       containerd-commit: "${{steps.set-vars.outputs.containerd-commit}}"
-      containerd-tag: "${{steps.set-vars.outputs.containerd-tag}}"
+      containerd-cache: "${{steps.set-vars.outputs.containerd-cache}}"
       engine-commit: "${{steps.set-vars.outputs.engine-commit}}"
-      engine-tag: "${{steps.set-vars.outputs.engine-tag}}"
+      engine-cache: "${{steps.set-vars.outputs.engine-cache}}"
       cli-commit: "${{steps.set-vars.outputs.cli-commit}}"
-      cli-tag: "${{steps.set-vars.outputs.cli-tag}}"
+      cli-cache: "${{steps.set-vars.outputs.cli-cache}}"
     env:
       ENGINE_VERSION: "${{ github.event.inputs.engineVersion }}"
       CONTAINERD_VERSION: "${{ github.event.inputs.containerdVersion }}"
@@ -110,6 +110,7 @@ jobs:
         path: containerd-src
         ref: "${{ steps.set-refs.outputs.containerd-branch }}"
     - id: set-matrix
+      name: Set Matrix
       run: |
         set -e
         matrix="$(./matrix.sh integration-linux)"
@@ -128,12 +129,17 @@ jobs:
         jq . <<<"$matrix" # help debug
         echo "::set-output name=integration-cli-windows::$matrix"
     - id: set-vars
+      name: Set Vars
       run: |
+        set -x -o pipefail
+
         case "$OS_VERSION_WINDOWS" in
             "windows-2019")
                 set -x
                 echo "::set-output name=windows-2019-image::mcr.microsoft.com/windows/servercore"
                 echo "::set-output name=windows-2019-tag::ltsc2019"
+                ;;
+            skip)
                 ;;
             *)
                 echo unknown windows version "$OS_VERSION_WINDOWS"
@@ -141,16 +147,16 @@ jobs:
         esac
 
         echo "::set-output name=engine-commit::$(git -C ./engine-src rev-parse HEAD)"
-        echo "::set-output name=engine-tag::engine-$(echo ${{ github.event.inputs.osLinux }}${ENGINE_VERSION} | sha256sum | awk '{ print $1 }')"
+        echo "::set-output name=engine-cache::ghcr.io/${{ github.repository }}/cache:engine-$(echo ${{ github.event.inputs.osLinux }}${ENGINE_VERSION} | sha256sum | awk '{ print $1 }')"
 
         echo "::set-output name=cli-commit::$(git -C ./cli-src rev-parse HEAD)"
-        echo "::set-output name=cli-tag::cli-$(echo ${{ github.event.inputs.osLinux }}${CLI_VERSION} | sha256sum | awk '{ print $1 }')"
+        echo "::set-output name=cli-cache::ghcr.io/${{ github.repository }}/cache:cli-$(echo ${{ github.event.inputs.osLinux }}${CLI_VERSION} | sha256sum | awk '{ print $1 }')"
 
         echo "::set-output name=runc-commit::$(git -C ./runc-src rev-parse HEAD)"
-        echo "::set-output name=runc-tag::runc-$(echo ${{ github.event.inputs.osLinux }}${RUNC_VERSION} | sha256sum | awk '{ print $1 }')"
+        echo "::set-output name=runc-cache::ghcr.io/${{ github.repository }}/cache:runc-$(echo ${{ github.event.inputs.osLinux }}${RUNC_VERSION} | sha256sum | awk '{ print $1 }')"
 
         echo "::set-output name=containerd-commit::$(git -C ./containerd-src rev-parse HEAD)"
-        echo "::set-output name=containerd-tag::containerd-$(echo ${{ github.event.inputs.osLinux }}${CONTAINERD_VERSION} | sha256sum | awk '{ print $1 }')"
+        echo "::set-output name=containerd-cache::ghcr.io/${{ github.repository }}/cache:containerd-$(echo ${{ github.event.inputs.osLinux }}${CONTAINERD_VERSION} | sha256sum | awk '{ print $1 }')"
   cache:
     if: github.event.inputs.osLinux != 'skip'
     needs: generate-matrix
@@ -173,26 +179,28 @@ jobs:
     - run: |
         set -e -x
 
-        export CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${${{matrix.project}}_tag}"
-        export CACHE_TO="${CACHE_FROM}"
-
         make ${{ matrix.project }}
+      name: make ${{ matrix.project }}
       env:
         APT_MIRROR: http://azure.archive.ubuntu.com/ubuntu
         DISTRO: "${{ github.event.inputs.osLinux }}"
         NO_OUTPUT: 1
         ENGINE_COMMIT: ${{ needs.generate-matrix.outputs.engine-commit }}
         ENGINE_VERSION: ${{ github.event.inputs.engineVersion }}
-        engine_tag: ${{ needs.generate-matrix.outputs.engine-tag }}
+        ENGINE_CACHE_TO: ${{ needs.generate-matrix.outputs.engine-cache }}
+        ENGINE_CACHE_FROM: ${{ needs.generate-matrix.outputs.engine-cache }}
         CLI_COMMIT: ${{ needs.generate-matrix.outputs.cli-commit }}
         CLI_VERSION: ${{ github.event.inputs.cliVersion }}
-        cli_tag: ${{ needs.generate-matrix.outputs.cli-tag }}
+        CLI_CACHE_TO: ${{ needs.generate-matrix.outputs.cli-cache }}
+        CLI_CACHE_FROM: ${{ needs.generate-matrix.outputs.cli-cache }}
         CONTAINERD_COMMIT: ${{ needs.generate-matrix.outputs.containerd-commit }}
         CONTAINERD_VERSION: ${{ github.event.inputs.containerdVersion }}
-        containerd_tag: ${{ needs.generate-matrix.outputs.containerd-tag }}
+        CONTAINERD_CACHE_TO: ${{ needs.generate-matrix.outputs.containerd-cache }}
+        CONTAINERD_CACHE_FROM: ${{ needs.generate-matrix.outputs.containerd-cache }}
         RUNC_COMMIT: ${{ needs.generate-matrix.outputs.runc-commit }}
         RUNC_VERSION: ${{ github.event.inputs.runcVersion }}
-        runc_tag: ${{ needs.generate-matrix.outputs.runc-tag }}
+        RUNC_CACHE_TO: ${{ needs.generate-matrix.outputs.runc-cache }}
+        RUNC_CACHE_FROM: ${{ needs.generate-matrix.outputs.runc-cache }}
   integration-windows:
     if: github.event.inputs.osWindows != 'skip'
     runs-on: ${{ matrix.os }}
@@ -242,6 +250,10 @@ jobs:
     - uses: actions/checkout@v2
     - name: Login to GHCR
       run: echo ${{ secrets.CR_PAT }} | docker login https://ghcr.io -u ${{ github.actor }} --password-stdin
+    - name: Setup buildx instance
+      uses: docker/setup-buildx-action@v1
+      with:
+        use: true
     - name: Build all the things
       env:
         DISTRO: ${{matrix.os}}
@@ -253,14 +265,13 @@ jobs:
         RUNC_COMMIT: "${{ needs.generate-matrix.outputs.runc-commit}}"
         CONTAINERD_VERSION: ${{matrix.containerd}}
         CONTAINERD_COMMIT: "${{ needs.generate-matrix.outputs.containerd-commit}}"
+        ENGINE_CACHE_FROM: ${{ needs.generate-matrix.outputs.engine-cache }}
+        CLI_CACHE_FROM: ${{ needs.generate-matrix.outputs.cli-cache }}
+        CONTAINERD_CACHE_FROM: ${{ needs.generate-matrix.outputs.containerd-cache }}
+        RUNC_CACHE_FROM: ${{ needs.generate-matrix.outputs.runc-cache }}
         APT_MIRROR: http://azure.archive.ubuntu.com/ubuntu
       run: |
         set -e -x
-
-        export ENGINE_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${{ needs.generate-matrix.outputs.engine-tag }}"
-        export CLI_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${{ needs.generate-matrix.outputs.cli-tag }}"
-        export CONTAINERD_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${{ needs.generate-matrix.outputs.containerd-tag }}"
-        export RUNC_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${{ needs.generate-matrix.outputs.runc-tag }}"
 
         if [ -z "CLI_VERSION" ]; then
           # Tests need the CLI even though we will not be using the CLI suite here
@@ -318,6 +329,10 @@ jobs:
     name: os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }} cli-${{matrix.suite}}
     steps:
     - uses: actions/checkout@v2
+    - name: Setup buildx instance
+      uses: docker/setup-buildx-action@v1
+      with:
+        use: true
     - name: Login to GHCR
       run: echo ${{ secrets.CR_PAT }} | docker login https://ghcr.io -u ${{ github.actor }} --password-stdin
     - name: Build all the things
@@ -331,13 +346,12 @@ jobs:
         RUNC_COMMIT: "${{ needs.generate-matrix.outputs.runc-commit}}"
         CONTAINERD_VERSION: ${{matrix.containerd}}
         CONTAINERD_COMMIT: "${{ needs.generate-matrix.outputs.containerd-commit}}"
+        ENGINE_CACHE_FROM: ${{ needs.generate-matrix.outputs.engine-cache }}
+        CLI_CACHE_FROM: ${{ needs.generate-matrix.outputs.cli-cache }}
+        CONTAINERD_CACHE_FROM: ${{ needs.generate-matrix.outputs.containerd-cache }}
+        RUNC_CACHE_FROM: ${{ needs.generate-matrix.outputs.runc-cache }}
       run: |
         set -e -x
-
-        export ENGINE_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${{ needs.generate-matrix.outputs.engine-tag }}"
-        export CLI_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${{ needs.generate-matrix.outputs.cli-tag }}"
-        export CONTAINERD_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${{ needs.generate-matrix.outputs.containerd-tag }}"
-        export RUNC_CACHE_FROM="ghcr.io/${{ github.repository }}/cache:${{ needs.generate-matrix.outputs.runc-tag }}"
 
         if [ -z "CLI_VERSION" ]; then
           export CLI_VERSION="20.10"

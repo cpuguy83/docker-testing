@@ -3,21 +3,6 @@ SHELL := /usr/bin/env bash -exo pipefail -c
 
 export OUTPUT := out
 
-export APT_MIRROR
-export TEST_FILTER
-
-ifdef TESTFLAGS
-export TESTFLAGS
-endif
-
-ifdef TEST_SKIP_INTEGRATION_CLI
-export TEST_SKIP_INTEGRATION_CLI
-endif
-
-ifdef TEST_SKIP_INTEGRATION
-export TEST_SKIP_INTEGRATION
-endif
-
 PROJECTS := engine runc containerd cli
 PROGRESS := auto
 ifeq ($(V), 1)
@@ -81,11 +66,10 @@ BUILD_ARGS := \
 engine: BUILD_ARGS += --build-arg TEST_FILTER
 
 .PHONY: $(PROJECTS)
-$(PROJECTS): BUILD_ARGS += --build-arg $(call project_var,COMMIT) --build-arg $(call project_var,REPO)
 $(PROJECTS): # make (project name) VERSION=<project version> DISTRO=<distro>, prefix (non-DISTRO) variables with the project name you are setting if you want to build multiple at once
 	VERSION="$(call get_version)"; \
 	f="$(@)/$${VERSION}/Dockerfile.$(DISTRO)"; \
-	docker buildx build $(call _cache_from) $(call _cache_to) $(BUILD_ARGS) --progress=$(PROGRESS) $(_output) -f "$${f}" "$(@)/$${VERSION}"
+	docker buildx build $(call _cache_from) $(call _cache_to) $(BUILD_ARGS) --build-arg $(call project_var,COMMIT) --build-arg $(call project_var,REPO) --progress=$(PROGRESS) $(_output) -f "$${f}" "$(@)/$${VERSION}"
 
 test-shell:
 	docker run -it --rm -v /var/lib/docker --tmpfs /run -v /var/lib/containerd --privileged -v $(pwd):/opt/test -w /opt/test $(subst -,:,$(DISTRO))
@@ -100,10 +84,6 @@ clean:
 $(OUTPUT)/$(DISTRO)/imageid: Dockerfile.$(DISTRO)
 	mkdir -p $(dir $@); \
 	DOCKER_BUILDKIT=1 docker build $(_cache_from) --build-arg APT_MIRROR --iidfile="$(@)" -< ./Dockerfile.$(DISTRO)
-
-ifdef DOCKER_INTEGRATION_TESTS_VERIFIED
-export DOCKER_INTEGRATION_TESTS_VERIFIED
-endif
 
 test: $(OUTPUT)/$(DISTRO)/imageid
 	[ -t 0 ] && withTty="--tty"; \
