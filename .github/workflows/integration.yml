@@ -147,16 +147,16 @@ jobs:
         esac
 
         echo "::set-output name=engine-commit::$(git -C ./engine-src rev-parse HEAD)"
-        echo "::set-output name=engine-cache::ghcr.io/${{ github.repository }}/cache:engine-$(echo ${{ github.event.inputs.osLinux }}${ENGINE_VERSION} | sha256sum | awk '{ print $1 }')"
+        echo "::set-output name=engine-cache::type=gha,scope=engine"
 
         echo "::set-output name=cli-commit::$(git -C ./cli-src rev-parse HEAD)"
-        echo "::set-output name=cli-cache::ghcr.io/${{ github.repository }}/cache:cli-$(echo ${{ github.event.inputs.osLinux }}${CLI_VERSION} | sha256sum | awk '{ print $1 }')"
+        echo "::set-output name=cli-cache::type=gha,scope=cli"
 
         echo "::set-output name=runc-commit::$(git -C ./runc-src rev-parse HEAD)"
-        echo "::set-output name=runc-cache::ghcr.io/${{ github.repository }}/cache:runc-$(echo ${{ github.event.inputs.osLinux }}${RUNC_VERSION} | sha256sum | awk '{ print $1 }')"
+        echo "::set-output name=runc-cache::type=gha,scope=runc"
 
         echo "::set-output name=containerd-commit::$(git -C ./containerd-src rev-parse HEAD)"
-        echo "::set-output name=containerd-cache::ghcr.io/${{ github.repository }}/cache:containerd-$(echo ${{ github.event.inputs.osLinux }}${CONTAINERD_VERSION} | sha256sum | awk '{ print $1 }')"
+        echo "::set-output name=containerd-cache::type=gha,scope=containerd"
   cache:
     if: github.event.inputs.osLinux != 'skip'
     needs: generate-matrix
@@ -174,8 +174,7 @@ jobs:
       uses: docker/setup-buildx-action@v1
       with:
         use: true
-    - name: Login to GHCR
-      run: echo ${{ secrets.CR_PAT }} | docker login https://ghcr.io -u ${{ github.actor }} --password-stdin
+    - uses: crazy-max/ghaction-github-runtime@v1
     - run: |
         set -e -x
 
@@ -248,12 +247,11 @@ jobs:
     name: os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }} ${{matrix.suite}}
     steps:
     - uses: actions/checkout@v2
-    - name: Login to GHCR
-      run: echo ${{ secrets.CR_PAT }} | docker login https://ghcr.io -u ${{ github.actor }} --password-stdin
     - name: Setup buildx instance
       uses: docker/setup-buildx-action@v1
       with:
         use: true
+    - uses: crazy-max/ghaction-github-runtime@v1
     - name: Build all the things
       env:
         DISTRO: ${{matrix.os}}
@@ -333,8 +331,6 @@ jobs:
       uses: docker/setup-buildx-action@v1
       with:
         use: true
-    - name: Login to GHCR
-      run: echo ${{ secrets.CR_PAT }} | docker login https://ghcr.io -u ${{ github.actor }} --password-stdin
     - name: Build all the things
       env:
         DISTRO: ${{matrix.os}}
