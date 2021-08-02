@@ -69,7 +69,16 @@ engine: BUILD_ARGS += --build-arg TEST_FILTER
 $(PROJECTS): # make (project name) VERSION=<project version> DISTRO=<distro>, prefix (non-DISTRO) variables with the project name you are setting if you want to build multiple at once
 	VERSION="$(call get_version)"; \
 	f="$(@)/$${VERSION}/Dockerfile.$(DISTRO)"; \
-	docker buildx build $(call _cache_from) $(call _cache_to) $(BUILD_ARGS) --build-arg $(call project_var,COMMIT) --build-arg $(call project_var,REPO) --progress=$(PROGRESS) $(_output) -f "$${f}" "$(@)/$${VERSION}"
+	docker buildx build \
+		$(call _cache_from) \
+		$(call _cache_to) \
+		$(BUILD_ARGS) \
+		--build-arg $(call project_var,COMMIT) \
+		--build-arg $(call project_var,REPO) \
+		--progress=$(PROGRESS) \
+		$(_output) \
+		-f "$${f}" \
+		"$(@)/$${VERSION}"
 
 test-shell:
 	docker run -it --rm -v /var/lib/docker --tmpfs /run -v /var/lib/containerd --privileged -v $(pwd):/opt/test -w /opt/test $(subst -,:,$(DISTRO))
@@ -97,6 +106,7 @@ test: $(OUTPUT)/$(DISTRO)/imageid
 		-e TEST_SKIP_INTEGRATION_CLI \
 		-e TEST_SKIP_INTEGRATION \
 		-e GOCACHE="$(PWD)/$(OUTPUT)/gobuildcache" \
+		-e GO_VERSION=$(GO_VERSION) \
 		-e DOCKER_GITCOMMIT="NOBODYCARES" \
 		-e DOCKER_INTEGRATION_TESTS_VERIFIED \
 		-e GOPATH=/go \
