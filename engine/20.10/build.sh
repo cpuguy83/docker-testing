@@ -49,9 +49,7 @@ fi
 
 out="$(cd "${OUTPUT}" && pwd)"
 
-mkdir -p "${GOPATH}/src/gotest.tools/gotestsum"
-git clone --depth=1 https://github.com/gotestyourself/gotestsum "${GOPATH}/src/gotest.tools/gotestsum"
-GO111MODULE=on go build -o "${out}/bin/gotestsum${ext}" gotest.tools/gotestsum
+GO111MODULE=on GOBIN="$(pwd)/${out}/bin" go install gotest.tools/gotestsum@v1.7.0
 
 mkdir -p "${GOPATH}/src/github.com/docker/distribution"
 cd "${GOPATH}/src/github.com/docker/distribution"
