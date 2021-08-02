@@ -49,7 +49,7 @@ fi
 
 out="$(cd "${OUTPUT}" && pwd)"
 
-GO111MODULE=on GOBIN="$(pwd)/${out}/bin" go install gotest.tools/gotestsum@v1.7.0
+GO111MODULE=on GOBIN="${out}/bin" go install gotest.tools/gotestsum@v1.7.0
 
 mkdir -p "${GOPATH}/src/github.com/docker/distribution"
 cd "${GOPATH}/src/github.com/docker/distribution"
