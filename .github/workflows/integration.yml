@@ -186,19 +186,19 @@ jobs:
           NO_OUTPUT: 1
           ENGINE_COMMIT: ${{ needs.generate-matrix.outputs.engine-commit }}
           ENGINE_VERSION: ${{ github.event.inputs.engineVersion }}
-          ENGINE_CACHE_TO: ${{ needs.generate-matrix.outputs.engine-cache }}
+          ENGINE_CACHE_TO: ${{ needs.generate-matrix.outputs.engine-cache }},mode=max
           ENGINE_CACHE_FROM: ${{ needs.generate-matrix.outputs.engine-cache }}
           CLI_COMMIT: ${{ needs.generate-matrix.outputs.cli-commit }}
           CLI_VERSION: ${{ github.event.inputs.cliVersion }}
-          CLI_CACHE_TO: ${{ needs.generate-matrix.outputs.cli-cache }}
+          CLI_CACHE_TO: ${{ needs.generate-matrix.outputs.cli-cache }},mode=max
           CLI_CACHE_FROM: ${{ needs.generate-matrix.outputs.cli-cache }}
           CONTAINERD_COMMIT: ${{ needs.generate-matrix.outputs.containerd-commit }}
           CONTAINERD_VERSION: ${{ github.event.inputs.containerdVersion }}
-          CONTAINERD_CACHE_TO: ${{ needs.generate-matrix.outputs.containerd-cache }}
+          CONTAINERD_CACHE_TO: ${{ needs.generate-matrix.outputs.containerd-cache }},mode=max
           CONTAINERD_CACHE_FROM: ${{ needs.generate-matrix.outputs.containerd-cache }}
           RUNC_COMMIT: ${{ needs.generate-matrix.outputs.runc-commit }}
           RUNC_VERSION: ${{ github.event.inputs.runcVersion }}
-          RUNC_CACHE_TO: ${{ needs.generate-matrix.outputs.runc-cache }}
+          RUNC_CACHE_TO: ${{ needs.generate-matrix.outputs.runc-cache }},mode=max
           RUNC_CACHE_FROM: ${{ needs.generate-matrix.outputs.runc-cache }}
   integration-windows:
     if: github.event.inputs.osWindows != 'skip'
