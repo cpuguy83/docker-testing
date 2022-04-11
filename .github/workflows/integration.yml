@@ -4,7 +4,7 @@ on:
     inputs:
       testFilter:
         description: Run a subset of tests(TEST_FILTER)
-        default: ''
+        default: ""
         required: false
       osLinux:
         required: false
@@ -62,101 +62,101 @@ jobs:
       OS_VERSION_LINUX: "${{ github.event.inputs.osLinux }}"
       OS_VERSION_WINDOWS: "${{ github.event.inputs.osWindows }}"
     steps:
-    - id: set-refs
-      run: |
-        set -e -x -o pipefail
-        case "$RUNC_VERSION" in
-          "master")
-            RUNC_BRANCH=master
-            ;;
-          *)
-            RUNC_BRANCH="release-${RUNC_VERSION}"
-            ;;
-        esac
-        echo "::set-output name=runc-branch::${RUNC_BRANCH}"
-
-        case "$CONTAINERD_VERSION" in
-          "master")
-            CONTAINERD_BRANCH=main
-            ;;
-          *)
-            CONTAINERD_BRANCH=release/${CONTAINERD_VERSION}
-            ;;
-        esac
-        echo "::set-output name=containerd-branch::${CONTAINERD_BRANCH}"
-    - uses: actions/checkout@v2
-    - uses: actions/checkout@v2
-      with:
-        repository: moby/moby
-        fetch-depth: 1
-        path: engine-src
-        ref: "${{ github.event.inputs.engineVersion }}"
-    - uses: actions/checkout@v2
-      with:
-        repository: docker/cli
-        fetch-depth: 1
-        path: cli-src
-        ref: "${{ github.event.inputs.cliVersion }}"
-    - uses: actions/checkout@v2
-      with:
-        repository: opencontainers/runc
-        fetch-depth: 1
-        path: runc-src
-        ref: "${{ steps.set-refs.outputs.runc-branch }}"
-    - uses: actions/checkout@v2
-      with:
-        repository: containerd/containerd
-        fetch-depth: 1
-        path: containerd-src
-        ref: "${{ steps.set-refs.outputs.containerd-branch }}"
-    - id: set-matrix
-      name: Set Matrix
-      run: |
-        set -e
-        matrix="$(./matrix.sh integration-linux)"
-        jq . <<<"$matrix" # help debug
-        echo "::set-output name=integration-linux::$matrix"
-
-        matrix="$(./matrix.sh integration-windows)"
-        jq . <<<"$matrix" # help debug
-        echo "::set-output name=integration-windows::$matrix"
-
-        matrix="$(./matrix.sh integration-cli-linux)"
-        jq . <<<"$matrix" # help debug
-        echo "::set-output name=integration-cli-linux::$matrix"
-
-        matrix="$(./matrix.sh integration-cli-windows)"
-        jq . <<<"$matrix" # help debug
-        echo "::set-output name=integration-cli-windows::$matrix"
-    - id: set-vars
-      name: Set Vars
-      run: |
-        set -x -o pipefail
-
-        case "$OS_VERSION_WINDOWS" in
-            "windows-2019")
-                set -x
-                echo "::set-output name=windows-2019-image::mcr.microsoft.com/windows/servercore"
-                echo "::set-output name=windows-2019-tag::ltsc2019"
-                ;;
-            skip)
-                ;;
+      - id: set-refs
+        run: |
+          set -e -x -o pipefail
+          case "$RUNC_VERSION" in
+            "master")
+              RUNC_BRANCH=master
+              ;;
             *)
-                echo unknown windows version "$OS_VERSION_WINDOWS"
-                ;;
-        esac
+              RUNC_BRANCH="release-${RUNC_VERSION}"
+              ;;
+          esac
+          echo "::set-output name=runc-branch::${RUNC_BRANCH}"
 
-        echo "::set-output name=engine-commit::$(git -C ./engine-src rev-parse HEAD)"
-        echo "::set-output name=engine-cache::type=gha,scope=engine"
+          case "$CONTAINERD_VERSION" in
+            "master")
+              CONTAINERD_BRANCH=main
+              ;;
+            *)
+              CONTAINERD_BRANCH=release/${CONTAINERD_VERSION}
+              ;;
+          esac
+          echo "::set-output name=containerd-branch::${CONTAINERD_BRANCH}"
+      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
+        with:
+          repository: moby/moby
+          fetch-depth: 1
+          path: engine-src
+          ref: "${{ github.event.inputs.engineVersion }}"
+      - uses: actions/checkout@v2
+        with:
+          repository: docker/cli
+          fetch-depth: 1
+          path: cli-src
+          ref: "${{ github.event.inputs.cliVersion }}"
+      - uses: actions/checkout@v2
+        with:
+          repository: opencontainers/runc
+          fetch-depth: 1
+          path: runc-src
+          ref: "${{ steps.set-refs.outputs.runc-branch }}"
+      - uses: actions/checkout@v2
+        with:
+          repository: containerd/containerd
+          fetch-depth: 1
+          path: containerd-src
+          ref: "${{ steps.set-refs.outputs.containerd-branch }}"
+      - id: set-matrix
+        name: Set Matrix
+        run: |
+          set -e
+          matrix="$(./matrix.sh integration-linux)"
+          jq . <<<"$matrix" # help debug
+          echo "::set-output name=integration-linux::$matrix"
 
-        echo "::set-output name=cli-commit::$(git -C ./cli-src rev-parse HEAD)"
-        echo "::set-output name=cli-cache::type=gha,scope=cli"
+          matrix="$(./matrix.sh integration-windows)"
+          jq . <<<"$matrix" # help debug
+          echo "::set-output name=integration-windows::$matrix"
 
-        echo "::set-output name=runc-commit::$(git -C ./runc-src rev-parse HEAD)"
-        echo "::set-output name=runc-cache::type=gha,scope=runc"
+          matrix="$(./matrix.sh integration-cli-linux)"
+          jq . <<<"$matrix" # help debug
+          echo "::set-output name=integration-cli-linux::$matrix"
 
-        echo "::set-output name=containerd-commit::$(git -C ./containerd-src rev-parse HEAD)"
-        echo "::set-output name=containerd-cache::type=gha,scope=containerd"
+          matrix="$(./matrix.sh integration-cli-windows)"
+          jq . <<<"$matrix" # help debug
+          echo "::set-output name=integration-cli-windows::$matrix"
+      - id: set-vars
+        name: Set Vars
+        run: |
+          set -x -o pipefail
+
+          case "$OS_VERSION_WINDOWS" in
+              "windows-2019")
+                  set -x
+                  echo "::set-output name=windows-2019-image::mcr.microsoft.com/windows/servercore"
+                  echo "::set-output name=windows-2019-tag::ltsc2019"
+                  ;;
+              skip)
+                  ;;
+              *)
+                  echo unknown windows version "$OS_VERSION_WINDOWS"
+                  ;;
+          esac
+
+          echo "::set-output name=engine-commit::$(git -C ./engine-src rev-parse HEAD)"
+          echo "::set-output name=engine-cache::type=gha,scope=engine"
+
+          echo "::set-output name=cli-commit::$(git -C ./cli-src rev-parse HEAD)"
+          echo "::set-output name=cli-cache::type=gha,scope=cli"
+
+          echo "::set-output name=runc-commit::$(git -C ./runc-src rev-parse HEAD)"
+          echo "::set-output name=runc-cache::type=gha,scope=runc"
+
+          echo "::set-output name=containerd-commit::$(git -C ./containerd-src rev-parse HEAD)"
+          echo "::set-output name=containerd-cache::type=gha,scope=containerd"
   cache:
     if: github.event.inputs.osLinux != 'skip'
     needs: generate-matrix
@@ -164,132 +164,132 @@ jobs:
     strategy:
       matrix:
         project:
-        - engine
-        - runc
-        - cli
-        - containerd
+          - engine
+          - runc
+          - cli
+          - containerd
     steps:
-    - uses: actions/checkout@v2
-    - name: Setup buildx instance
-      uses: docker/setup-buildx-action@v1
-      with:
-        use: true
-    - uses: crazy-max/ghaction-github-runtime@v1
-    - run: |
-        set -e -x
+      - uses: actions/checkout@v2
+      - name: Setup buildx instance
+        uses: docker/setup-buildx-action@v1
+        with:
+          use: true
+      - uses: crazy-max/ghaction-github-runtime@v1
+      - run: |
+          set -e -x
 
-        make ${{ matrix.project }}
-      name: make ${{ matrix.project }}
-      env:
-        APT_MIRROR: http://azure.archive.ubuntu.com/ubuntu
-        DISTRO: "${{ github.event.inputs.osLinux }}"
-        NO_OUTPUT: 1
-        ENGINE_COMMIT: ${{ needs.generate-matrix.outputs.engine-commit }}
-        ENGINE_VERSION: ${{ github.event.inputs.engineVersion }}
-        ENGINE_CACHE_TO: ${{ needs.generate-matrix.outputs.engine-cache }}
-        ENGINE_CACHE_FROM: ${{ needs.generate-matrix.outputs.engine-cache }}
-        CLI_COMMIT: ${{ needs.generate-matrix.outputs.cli-commit }}
-        CLI_VERSION: ${{ github.event.inputs.cliVersion }}
-        CLI_CACHE_TO: ${{ needs.generate-matrix.outputs.cli-cache }}
-        CLI_CACHE_FROM: ${{ needs.generate-matrix.outputs.cli-cache }}
-        CONTAINERD_COMMIT: ${{ needs.generate-matrix.outputs.containerd-commit }}
-        CONTAINERD_VERSION: ${{ github.event.inputs.containerdVersion }}
-        CONTAINERD_CACHE_TO: ${{ needs.generate-matrix.outputs.containerd-cache }}
-        CONTAINERD_CACHE_FROM: ${{ needs.generate-matrix.outputs.containerd-cache }}
-        RUNC_COMMIT: ${{ needs.generate-matrix.outputs.runc-commit }}
-        RUNC_VERSION: ${{ github.event.inputs.runcVersion }}
-        RUNC_CACHE_TO: ${{ needs.generate-matrix.outputs.runc-cache }}
-        RUNC_CACHE_FROM: ${{ needs.generate-matrix.outputs.runc-cache }}
+          make ${{ matrix.project }}
+        name: make ${{ matrix.project }}
+        env:
+          APT_MIRROR: http://azure.archive.ubuntu.com/ubuntu
+          DISTRO: "${{ github.event.inputs.osLinux }}"
+          NO_OUTPUT: 1
+          ENGINE_COMMIT: ${{ needs.generate-matrix.outputs.engine-commit }}
+          ENGINE_VERSION: ${{ github.event.inputs.engineVersion }}
+          ENGINE_CACHE_TO: ${{ needs.generate-matrix.outputs.engine-cache }}
+          ENGINE_CACHE_FROM: ${{ needs.generate-matrix.outputs.engine-cache }}
+          CLI_COMMIT: ${{ needs.generate-matrix.outputs.cli-commit }}
+          CLI_VERSION: ${{ github.event.inputs.cliVersion }}
+          CLI_CACHE_TO: ${{ needs.generate-matrix.outputs.cli-cache }}
+          CLI_CACHE_FROM: ${{ needs.generate-matrix.outputs.cli-cache }}
+          CONTAINERD_COMMIT: ${{ needs.generate-matrix.outputs.containerd-commit }}
+          CONTAINERD_VERSION: ${{ github.event.inputs.containerdVersion }}
+          CONTAINERD_CACHE_TO: ${{ needs.generate-matrix.outputs.containerd-cache }}
+          CONTAINERD_CACHE_FROM: ${{ needs.generate-matrix.outputs.containerd-cache }}
+          RUNC_COMMIT: ${{ needs.generate-matrix.outputs.runc-commit }}
+          RUNC_VERSION: ${{ github.event.inputs.runcVersion }}
+          RUNC_CACHE_TO: ${{ needs.generate-matrix.outputs.runc-cache }}
+          RUNC_CACHE_FROM: ${{ needs.generate-matrix.outputs.runc-cache }}
   integration-windows:
     if: github.event.inputs.osWindows != 'skip'
     runs-on: ${{ matrix.os }}
     name: os=${{ matrix.os }} engine=${{ matrix.engine }} cli=${{ matrix.cli }}
     needs:
-    - generate-matrix
+      - generate-matrix
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.generate-matrix.outputs.integration-matrix-windows) }}
     steps:
-    - uses: actions/checkout@v2
-      with:
-        repository: moby/moby
-        fetch-depth: 1
-        path: out/src/github.com/docker/docker
-        ref: "${{ github.event.inputs.engineVersion }}"
-    - name: Test
-      timeout-minutes: 120
-      env:
-        TEST_FILTER: ${{ github.event.inputs.testFilter }}
-        TEST_SKIP_INTEGRATION_CLI: "1"
-        SOURCES_DRIVE: 'd'
-        SOURCES_SUBDIR: a\docker-testing\docker-testing\out
-        TESTRUN_DRIVE: 'd'
-        TESTRUN_SUBDIR: 'CI'
-        WINDOWS_BASE_IMAGE: ${{ needs.generate-matrix.outputs.windows-2019-image }}
-        WINDOWS_BASE_IMAGE_TAG: ${{ needs.generate-matrix.outputs.windows-2019-tag }}
-        SKIP_UNIT_TESTS: '1'
-        SKIP_VALIDATION_TESTS: '1'
-        SKIP_ALL_CLEANUP: '1'
-      working-directory: out/src/github.com/docker/docker
-      run: |
-        $ErrorActionPreference = 'Stop'
-        Invoke-WebRequest https://github.com/moby/docker-ci-zap/blob/master/docker-ci-zap.exe?raw=true -OutFile C:/Windows/System32/docker-ci-zap.exe
-        ./hack/ci/windows.ps1
+      - uses: actions/checkout@v2
+        with:
+          repository: moby/moby
+          fetch-depth: 1
+          path: out/src/github.com/docker/docker
+          ref: "${{ github.event.inputs.engineVersion }}"
+      - name: Test
+        timeout-minutes: 120
+        env:
+          TEST_FILTER: ${{ github.event.inputs.testFilter }}
+          TEST_SKIP_INTEGRATION_CLI: "1"
+          SOURCES_DRIVE: "d"
+          SOURCES_SUBDIR: a\docker-testing\docker-testing\out
+          TESTRUN_DRIVE: "d"
+          TESTRUN_SUBDIR: "CI"
+          WINDOWS_BASE_IMAGE: ${{ needs.generate-matrix.outputs.windows-2019-image }}
+          WINDOWS_BASE_IMAGE_TAG: ${{ needs.generate-matrix.outputs.windows-2019-tag }}
+          SKIP_UNIT_TESTS: "1"
+          SKIP_VALIDATION_TESTS: "1"
+          SKIP_ALL_CLEANUP: "1"
+        working-directory: out/src/github.com/docker/docker
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Invoke-WebRequest https://github.com/moby/docker-ci-zap/blob/master/docker-ci-zap.exe?raw=true -OutFile C:/Windows/System32/docker-ci-zap.exe
+          ./hack/ci/windows.ps1
   integration-linux:
     if: github.event.inputs.osLinux != 'skip'
     runs-on: ${{ matrix.os }}
     needs:
-    - generate-matrix
-    - cache
+      - generate-matrix
+      - cache
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.generate-matrix.outputs.integration-matrix-linux) }}
     name: os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }} ${{matrix.suite}}
     steps:
-    - uses: actions/checkout@v2
-    - name: Setup buildx instance
-      uses: docker/setup-buildx-action@v1
-      with:
-        use: true
-    - uses: crazy-max/ghaction-github-runtime@v1
-    - name: Build all the things
-      env:
-        DISTRO: ${{matrix.os}}
-        ENGINE_VERSION: ${{matrix.engine}}
-        ENGINE_COMMIT: "${{ needs.generate-matrix.outputs.engine-commit}}"
-        CLI_VERSION: ${{matrix.cli}}
-        CLI_COMMIT: "${{ needs.generate-matrix.outputs.cli-commit}}"
-        RUNC_VERSION: ${{matrix.runc}}
-        RUNC_COMMIT: "${{ needs.generate-matrix.outputs.runc-commit}}"
-        CONTAINERD_VERSION: ${{matrix.containerd}}
-        CONTAINERD_COMMIT: "${{ needs.generate-matrix.outputs.containerd-commit}}"
-        ENGINE_CACHE_FROM: ${{ needs.generate-matrix.outputs.engine-cache }}
-        CLI_CACHE_FROM: ${{ needs.generate-matrix.outputs.cli-cache }}
-        CONTAINERD_CACHE_FROM: ${{ needs.generate-matrix.outputs.containerd-cache }}
-        RUNC_CACHE_FROM: ${{ needs.generate-matrix.outputs.runc-cache }}
-        APT_MIRROR: http://azure.archive.ubuntu.com/ubuntu
-      run: |
-        set -e -x
+      - uses: actions/checkout@v2
+      - name: Setup buildx instance
+        uses: docker/setup-buildx-action@v1
+        with:
+          use: true
+      - uses: crazy-max/ghaction-github-runtime@v1
+      - name: Build all the things
+        env:
+          DISTRO: ${{matrix.os}}
+          ENGINE_VERSION: ${{matrix.engine}}
+          ENGINE_COMMIT: "${{ needs.generate-matrix.outputs.engine-commit}}"
+          CLI_VERSION: ${{matrix.cli}}
+          CLI_COMMIT: "${{ needs.generate-matrix.outputs.cli-commit}}"
+          RUNC_VERSION: ${{matrix.runc}}
+          RUNC_COMMIT: "${{ needs.generate-matrix.outputs.runc-commit}}"
+          CONTAINERD_VERSION: ${{matrix.containerd}}
+          CONTAINERD_COMMIT: "${{ needs.generate-matrix.outputs.containerd-commit}}"
+          ENGINE_CACHE_FROM: ${{ needs.generate-matrix.outputs.engine-cache }}
+          CLI_CACHE_FROM: ${{ needs.generate-matrix.outputs.cli-cache }}
+          CONTAINERD_CACHE_FROM: ${{ needs.generate-matrix.outputs.containerd-cache }}
+          RUNC_CACHE_FROM: ${{ needs.generate-matrix.outputs.runc-cache }}
+          APT_MIRROR: http://azure.archive.ubuntu.com/ubuntu
+        run: |
+          set -e -x
 
-        if [ -z "CLI_VERSION" ]; then
-          # Tests need the CLI even though we will not be using the CLI suite here
-          export CLI_VERSION="20.10"
-        fi
+          if [ -z "CLI_VERSION" ]; then
+            # Tests need the CLI even though we will not be using the CLI suite here
+            export CLI_VERSION="20.10"
+          fi
 
-        make engine containerd runc cli
-    - name: Test
-      timeout-minutes: 120
-      env:
-        DOCKER_INTEGRATION_TESTS_VERIFIED: true
-        APT_MIRROR: http://azure.archive.ubuntu.com/ubuntu
-        CACHE_FROM: ghcr.io/${{github.repository}}/${{matrix.os}}:latest
-        TEST_FILTER: ${{ github.event.inputs.testFilter }}
-        TEST_SKIP_INTEGRATION_CLI: "1"
-        DOCKER_GRAPHDRIVER: ${{ github.event.inputs.graphDriver }}
-      run:  make test DISTRO=${{matrix.os}}
-    - name: Cleanup
-      if: always()
-      run: |
+          make engine containerd runc cli
+      - name: Test
+        timeout-minutes: 120
+        env:
+          DOCKER_INTEGRATION_TESTS_VERIFIED: true
+          APT_MIRROR: http://azure.archive.ubuntu.com/ubuntu
+          CACHE_FROM: ghcr.io/${{github.repository}}/${{matrix.os}}:latest
+          TEST_FILTER: ${{ github.event.inputs.testFilter }}
+          TEST_SKIP_INTEGRATION_CLI: "1"
+          DOCKER_GRAPHDRIVER: ${{ github.event.inputs.graphDriver }}
+        run: make test DISTRO=${{matrix.os}}
+      - name: Cleanup
+        if: always()
+        run: |
           mounts=("$(mount | grep 'docker/docker/bundles' | awk '{ print $3 }')")
           for i in ${mounts[@]}; do
             sudo umount -r -l "${i}"
@@ -299,76 +299,76 @@ jobs:
             find  "${i}" -maxdepth 3 -name root | sudo xargs -I thefile rm -rf thefile
           done
           sudo chown -R "$(id -u):$(id -g)" "out/tests"
-    - name: Generate artifact name
-      id: generate-artifact-name
-      if: always()
-      run: |
-        echo "::set-output name=name::os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }} integration"
-    - uses: actions/upload-artifact@v2
-      if: always()
-      with:
-        name: ${{ steps.generate-artifact-name.outputs.name }}
-        path: |
-          out/tests/**
-          !out/tests/test-integration/**/root
-          !out/tests/test-integration/**/*.sock
-          !out/tests/test-integration/*/*.sock
-        retention-days: 10
+      - name: Generate artifact name
+        id: generate-artifact-name
+        if: always()
+        run: |
+          echo "::set-output name=name::os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }} integration"
+      - uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: ${{ steps.generate-artifact-name.outputs.name }}
+          path: |
+            out/tests/**
+            !out/tests/test-integration/**/root
+            !out/tests/test-integration/**/*.sock
+            !out/tests/test-integration/*/*.sock
+          retention-days: 10
   integration-cli-linux:
     if: github.event.inputs.osLinux != 'skip'
     timeout-minutes: 120
     runs-on: ${{ matrix.os }}
     needs:
-    - generate-matrix
-    - cache
+      - generate-matrix
+      - cache
     strategy:
       fail-fast: false
       matrix: ${{fromJSON(needs.generate-matrix.outputs.integration-cli-matrix-linux) }}
     name: os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }} cli-${{matrix.suite}}
     steps:
-    - uses: actions/checkout@v2
-    - name: Setup buildx instance
-      uses: docker/setup-buildx-action@v1
-      with:
-        use: true
-    - uses: crazy-max/ghaction-github-runtime@v1
-    - name: Build all the things
-      env:
-        DISTRO: ${{matrix.os}}
-        ENGINE_VERSION: ${{matrix.engine}}
-        ENGINE_COMMIT: "${{ needs.generate-matrix.outputs.engine-commit}}"
-        CLI_VERSION: ${{matrix.cli}}
-        CLI_COMMIT: "${{ needs.generate-matrix.outputs.cli-commit}}"
-        RUNC_VERSION: ${{matrix.runc}}
-        RUNC_COMMIT: "${{ needs.generate-matrix.outputs.runc-commit}}"
-        CONTAINERD_VERSION: ${{matrix.containerd}}
-        CONTAINERD_COMMIT: "${{ needs.generate-matrix.outputs.containerd-commit}}"
-        ENGINE_CACHE_FROM: ${{ needs.generate-matrix.outputs.engine-cache }}
-        CLI_CACHE_FROM: ${{ needs.generate-matrix.outputs.cli-cache }}
-        CONTAINERD_CACHE_FROM: ${{ needs.generate-matrix.outputs.containerd-cache }}
-        RUNC_CACHE_FROM: ${{ needs.generate-matrix.outputs.runc-cache }}
-      run: |
-        set -e -x
+      - uses: actions/checkout@v2
+      - name: Setup buildx instance
+        uses: docker/setup-buildx-action@v1
+        with:
+          use: true
+      - uses: crazy-max/ghaction-github-runtime@v1
+      - name: Build all the things
+        env:
+          DISTRO: ${{matrix.os}}
+          ENGINE_VERSION: ${{matrix.engine}}
+          ENGINE_COMMIT: "${{ needs.generate-matrix.outputs.engine-commit}}"
+          CLI_VERSION: ${{matrix.cli}}
+          CLI_COMMIT: "${{ needs.generate-matrix.outputs.cli-commit}}"
+          RUNC_VERSION: ${{matrix.runc}}
+          RUNC_COMMIT: "${{ needs.generate-matrix.outputs.runc-commit}}"
+          CONTAINERD_VERSION: ${{matrix.containerd}}
+          CONTAINERD_COMMIT: "${{ needs.generate-matrix.outputs.containerd-commit}}"
+          ENGINE_CACHE_FROM: ${{ needs.generate-matrix.outputs.engine-cache }}
+          CLI_CACHE_FROM: ${{ needs.generate-matrix.outputs.cli-cache }}
+          CONTAINERD_CACHE_FROM: ${{ needs.generate-matrix.outputs.containerd-cache }}
+          RUNC_CACHE_FROM: ${{ needs.generate-matrix.outputs.runc-cache }}
+        run: |
+          set -e -x
 
-        if [ -z "CLI_VERSION" ]; then
-          export CLI_VERSION="20.10"
-        fi
+          if [ -z "CLI_VERSION" ]; then
+            export CLI_VERSION="20.10"
+          fi
 
-        make engine containerd runc cli
-    - name: Test
-      timeout-minutes: 120
-      env:
-        DOCKER_INTEGRATION_TESTS_VERIFIED: true
-        APT_MIRROR: http://azure.archive.ubuntu.com/ubuntu
-        CACHE_FROM: ghcr.io/${{github.repository}}/${{matrix.os}}:latest
-        TEST_FILTER: ${{ github.event.inputs.testFilter }}
-        TEST_SKIP_INTEGRATION: "1"
-        DOCKER_GRAPHDRIVER: ${{ github.event.inputs.graphDriver }}
-      run: make test DISTRO=${{matrix.os}} TESTFLAGS="-test.run Test(${{matrix.suite}})"
-    # Cleanup step can be needed if there was a problem with the run and the cleanup within the test setup code does not run
-    - name: Cleanup
-      if: always()
-      run: |
+          make engine containerd runc cli
+      - name: Test
+        timeout-minutes: 120
+        env:
+          DOCKER_INTEGRATION_TESTS_VERIFIED: true
+          APT_MIRROR: http://azure.archive.ubuntu.com/ubuntu
+          CACHE_FROM: ghcr.io/${{github.repository}}/${{matrix.os}}:latest
+          TEST_FILTER: ${{ github.event.inputs.testFilter }}
+          TEST_SKIP_INTEGRATION: "1"
+          DOCKER_GRAPHDRIVER: ${{ github.event.inputs.graphDriver }}
+        run: make test DISTRO=${{matrix.os}} TESTFLAGS="-test.run Test(${{matrix.suite}})"
+      # Cleanup step can be needed if there was a problem with the run and the cleanup within the test setup code does not run
+      - name: Cleanup
+        if: always()
+        run: |
           mounts=("$(mount | grep 'docker/docker/bundles' | awk '{ print $3 }')")
           for i in ${mounts[@]}; do
             sudo umount -r -l "${i}"
@@ -378,34 +378,34 @@ jobs:
             find  "${i}" -maxdepth 3 -name root | sudo xargs -I thefile rm -rf thefile
           done
           sudo chown -R "$(id -u):$(id -g)" "out/tests"
-    - name: Generate artifact name
-      id: generate-artifact-name
-      if: always()
-      run: |
-        echo "::set-output name=name::os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }} $(echo '${{matrix.suite}}' | sed 's,|,_,g')"
-    - uses: actions/upload-artifact@v2
-      if: always()
-      with:
-        name: ${{ steps.generate-artifact-name.outputs.name }}
-        path: |
-          out/tests/**
-          !out/tests/test-integration/**/root
-          !out/tests/test-integration/**/*.sock
-          !out/tests/test-integration/*/*.sock
-        retention-days: 10
+      - name: Generate artifact name
+        id: generate-artifact-name
+        if: always()
+        run: |
+          echo "::set-output name=name::os=${{ matrix.os }} engine=${{ matrix.engine }} containerd=${{ matrix.containerd }} cli=${{ matrix.cli }} runc=${{ matrix.runc }} $(echo '${{matrix.suite}}' | sed 's,|,_,g')"
+      - uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: ${{ steps.generate-artifact-name.outputs.name }}
+          path: |
+            out/tests/**
+            !out/tests/test-integration/**/root
+            !out/tests/test-integration/**/*.sock
+            !out/tests/test-integration/*/*.sock
+          retention-days: 10
   publish:
     runs-on: ubuntu-20.04
     name: Publish Results
     needs: ["integration-linux", "integration-cli-linux", "integration-windows"]
     if: always()
     steps:
-    - name: Download Artifacts
-      uses: actions/download-artifact@v2
-      with:
-        path: artifacts
-    - name: Publish Test Results
-      uses: EnricoMi/publish-unit-test-result-action@v1
-      if: always()
-      with:
-        files: artifacts/**/*.xml
-        check_name: Test Results
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        if: always()
+        with:
+          files: artifacts/**/*.xml
+          check_name: Test Results
