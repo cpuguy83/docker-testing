@@ -2,7 +2,7 @@
 
 set -e -o xtrace
 
-export GO111MODULE=off
+# export GO111MODULE=off
 : ${VERSION:=21.0.0-dev}
 
 : ${GOPATH:=~/go}
@@ -28,7 +28,10 @@ go build -o "${OUTPUT}"/bin/docker-proxy github.com/docker/docker/cmd/docker-pro
 export PREFIX="${OUTPUT}/bin/"
 hack/dockerfile/install/install.sh tini
 TEST_FILTER=${TEST_FILTER} hack/make.sh build-integration-test-binary
-hack/dockerfile/install/install.sh gotestsum # Testing dependency
+
+GOTESTSUM_VERSION="$(cat Dockerfile | grep GOTESTSUM_VERSION= | awk -F'=' '{ print $2 }')"
+GOBIN="${OUTPUT}/bin" GO111MODULE=on go install "gotest.tools/gotestsum@${GOTESTSUM_VERSION}" # Testing dependency
+
 contrib/download-frozen-image-v2.sh "${OUTPUT}/frozen" \
 	buildpack-deps:buster@sha256:d0abb4b1e5c664828b93e8b6ac84d10bce45ee469999bef88304be04a2709491 \
 	busybox:latest@sha256:95cf004f559831017cdf4628aaf1bb30133677be8702a8c5f2994629f637a209 \
